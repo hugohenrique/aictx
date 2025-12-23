@@ -1,0 +1,6 @@
+- Project: (fill me)
+- Goal: (fill me)
+- Stack: (fill me)
+- Key constraints: (fill me)
+- Current focus: (fill me)
+- Defaults: codex=gpt-5.1-codex-max; claude=sonnet; gemini=auto

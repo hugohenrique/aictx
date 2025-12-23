@@ -1,0 +1,9 @@
+{
+  "engine": "auto",
+  "codex_model": "gpt-5.1-codex-max",
+  "claude_model": "sonnet",
+  "gemini_model": "auto",
+  "session_reuse_seconds": 7200,
+  "finalize": true,
+  "prompt_mode": "paths"
+}

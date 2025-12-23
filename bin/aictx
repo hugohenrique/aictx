@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+AICTX_HOME="${AICTX_HOME:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+
+# shellcheck source=../lib/core.sh
+source "$AICTX_HOME/lib/core.sh"
+# shellcheck source=../lib/args.sh
+source "$AICTX_HOME/lib/args.sh"
+
+aictx_main "$@"
