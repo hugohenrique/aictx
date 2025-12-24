@@ -3,6 +3,18 @@ set -euo pipefail
 # shellcheck source=./core.sh
 source "${AICTX_HOME}/lib/core.sh"
 
+aictx_build_finalize_prompt(){
+  local session_file="$1"
+  local transcript_file="$2"
+  local out; out="$(ai_mktemp)"
+
+  sed -e "s|{{SESSION_FILE}}|$session_file|g" \
+      -e "s|{{TRANSCRIPT_FILE}}|$transcript_file|g" \
+      "${AICTX_HOME}/templates/FINALIZE_PROMPT.md" > "$out"
+
+  echo "$out"
+}
+
 aictx_build_prompt(){
   local session_file="$1"
   local prev_session="$2"
@@ -39,34 +51,19 @@ aictx_build_prompt(){
     } > "$out"
   else
     {
-      echo "# aictx — token-optimized context"
+      echo "# aictx — paths mode"
       echo
-      echo "You have filesystem access to the project."
-      echo "Do NOT ask to paste files; read them from disk."
+      echo "Read from disk (no pastes):"
+      echo "- $AICTX_DIR/PROMPT.md (instructions)"
+      echo "- $AICTX_DIGEST_FILE (working memory, read FIRST)"
       echo
-      echo "1) Read and obey:"
-      echo "   - $AICTX_DIR/PROMPT.md"
-      echo
-      echo "2) Read compact memory first:"
-      echo "   - $AICTX_DIGEST_FILE"
-      echo
-      echo "3) If needed, consult:"
-      echo "   - $AICTX_DIR/CONTEXT.md"
-      echo "   - $AICTX_DIR/DECISIONS.md"
-      echo "   - $AICTX_DIR/TODO.md"
+      echo "If needed:"
+      echo "- $AICTX_DIR/CONTEXT.md, DECISIONS.md, TODO.md"
       if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]]; then
-        echo "   - $prev_session"
+        echo "- $prev_session"
       fi
       echo
-      echo "4) Update at the end:"
-      echo "   - $session_file"
-      echo
-      echo "Rules:"
-      echo "- Do not invent facts; if uncertain, write 'Unknown'."
-      echo "- Prefer updating DIGEST.md rather than expanding other files."
-      echo "- Keep changes minimal and correct."
-      echo
-      echo "Begin."
+      echo "Update at end: $session_file"
     } > "$out"
   fi
 
