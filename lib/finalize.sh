@@ -27,6 +27,17 @@ aictx_choose_engine(){
   fi
 }
 
+aictx_infer_engine_from_model(){
+  # level-1: only route to the correct CLI based on model string
+  local m="$1"
+  m="$(echo "$m" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$m" == *"codex"* ]]; then echo "codex"; return; fi
+  if [[ "$m" == "opus" || "$m" == "sonnet" || "$m" == "haiku" || "$m" == claude* ]]; then echo "claude"; return; fi
+  if [[ "$m" == gemini* ]]; then echo "gemini"; return; fi
+  echo "auto"
+}
+
 aictx_finalize_one(){
   local engine="$1" model="$2" session="$3" transcript="$4"
   [[ -f "$transcript" ]] || { ai_log "missing transcript: $transcript"; return 1; }
@@ -46,10 +57,10 @@ aictx_finalize_cmd(){
   aictx_bootstrap
   aictx_load_config
 
-  local engine="auto" model="" session="" transcript=""
+  local engine="auto" model="" session="" transcript="" engine_explicit="0"
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -e|--engine) engine="${2:-}"; shift 2;;
+      -e|--engine) engine="${2:-}"; engine_explicit="1"; shift 2;;
       -m|--model) model="${2:-}"; shift 2;;
       -s|--session) session="${2:-}"; shift 2;;
       -t|--transcript) transcript="${2:-}"; shift 2;;
@@ -57,10 +68,27 @@ aictx_finalize_cmd(){
     esac
   done
 
-  local eng; eng="$(aictx_choose_engine "$engine")"
+local inferred_from_model="0"
+if [[ -n "$model" && "$engine_explicit" == "0" ]]; then
+  local inferred_engine
+  inferred_engine="$(aictx_infer_engine_from_model "$model")"
+  if [[ "$inferred_engine" != "auto" ]]; then
+    engine="$inferred_engine"
+    inferred_from_model="1"
+  fi
+fi
+
+local eng; eng="$(aictx_choose_engine "$engine")"
+
   [[ "$eng" != "none" ]] || ai_die "no engine available"
 
-  [[ -n "$model" ]] || {
+if [[ "$inferred_from_model" == "1" ]]; then
+  ai_log "engine=$eng (inferred from --model=$model)"
+else
+  ai_log "engine=$eng"
+fi
+
+[[ -n "$model" ]] || {
     if [[ "$eng" == "codex" ]]; then model="$AICTX_CODEX_MODEL"
     elif [[ "$eng" == "claude" ]]; then model="$AICTX_CLAUDE_MODEL"
     else model="$AICTX_GEMINI_MODEL"

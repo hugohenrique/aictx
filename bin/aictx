@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-AICTX_HOME="${AICTX_HOME:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}"
+# Resolve symlinks (macOS doesn't support `readlink -f`)
+AICTX_SRC="${BASH_SOURCE[0]}"
+while [ -L "$AICTX_SRC" ]; do
+  AICTX_DIR="$(cd "$(dirname "$AICTX_SRC")" && pwd)"
+  AICTX_SRC="$(readlink "$AICTX_SRC")"
+  [[ "$AICTX_SRC" != /* ]] && AICTX_SRC="$AICTX_DIR/$AICTX_SRC"
+done
+
+AICTX_HOME="${AICTX_HOME:-"$(cd "$(dirname "$AICTX_SRC")/.." && pwd)"}"
 
 # shellcheck source=../lib/core.sh
 source "$AICTX_HOME/lib/core.sh"

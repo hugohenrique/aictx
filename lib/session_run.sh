@@ -19,6 +19,23 @@ source "${AICTX_HOME}/lib/engines/claude.sh"
 # shellcheck source=./engines/gemini.sh
 source "${AICTX_HOME}/lib/engines/gemini.sh"
 
+aictx_infer_engine_from_model(){
+  # level-1: only route to the correct CLI based on model string
+  local m="$1"
+  m="$(echo "$m" | tr '[:upper:]' '[:lower:]')"
+
+  # Codex models usually contain "codex"
+  if [[ "$m" == *"codex"* ]]; then echo "codex"; return; fi
+
+  # Claude models often are opus/sonnet/haiku or start with "claude"
+  if [[ "$m" == "opus" || "$m" == "sonnet" || "$m" == "haiku" || "$m" == claude* ]]; then echo "claude"; return; fi
+
+  # Gemini models typically start with "gemini"
+  if [[ "$m" == gemini* ]]; then echo "gemini"; return; fi
+
+  echo "auto"
+}
+
 aictx_status(){
   aictx_paths_init
   if [[ ! -d "$AICTX_DIR" && ! -d "$AICTX_LEGACY_DIR" ]]; then
@@ -37,17 +54,28 @@ aictx_run(){
   aictx_bootstrap
   aictx_load_config
 
-  local engine="$AICTX_ENGINE" model_override="" no_finalize="0"
+  local engine="$AICTX_ENGINE" model_override="" no_finalize="0" engine_explicit="0"
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      -e|--engine) engine="${2:-}"; shift 2;;
+      -e|--engine) engine="${2:-}"; engine_explicit="1"; shift 2;;
       -m|--model) model_override="${2:-}"; shift 2;;
       --no-finalize) no_finalize="1"; shift 1;;
       *) ai_die "unknown arg: $1" ;;
     esac
   done
 
-  local eng; eng="$(aictx_choose_engine "$engine")"
+local inferred_from_model="0"
+if [[ -n "$model_override" && "$engine_explicit" == "0" ]]; then
+  local inferred_engine
+  inferred_engine="$(aictx_infer_engine_from_model "$model_override")"
+  if [[ "$inferred_engine" != "auto" ]]; then
+    engine="$inferred_engine"
+    inferred_from_model="1"
+  fi
+fi
+
+local eng; eng="$(aictx_choose_engine "$engine")"
+
   [[ "$eng" != "none" ]] || ai_die "no engine available (install codex or claude or gemini)"
 
   local model
@@ -70,7 +98,12 @@ aictx_run(){
 
   local pending
   pending="$(aictx_pending_create "$eng" "$model" "$session" "$transcript")"
+if [[ "$inferred_from_model" == "1" ]]; then
+  ai_log "engine=$eng (inferred from --model=$model_override) model=$model prompt_mode=$AICTX_PROMPT_MODE"
+else
   ai_log "engine=$eng model=$model prompt_mode=$AICTX_PROMPT_MODE"
+fi
+
   ai_log "session=$session"
   ai_log "transcript=$transcript"
   ai_log "pending=$pending"

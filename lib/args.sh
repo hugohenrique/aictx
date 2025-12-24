@@ -40,6 +40,11 @@ Token optimization:
   - Default prompt_mode is "paths" (minimal prompt that points to files).
   - Set .aictx/config.json: "prompt_mode": "inline" if you want the old behavior.
 
+Model-based routing (when --engine not set):
+  --model containing 'codex' -> codex
+  --model in {opus,sonnet,haiku} or starting with 'claude' -> claude
+  --model starting with 'gemini' -> gemini
+
 Examples:
   aictx init
   aictx run

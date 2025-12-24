@@ -37,6 +37,21 @@ aictx run --engine gemini  # choose Gemini
 ### Gemini CLI notes
 - `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.
 
+
+### Model-based routing (level 1)
+If you pass `--model`, `aictx` will infer which CLI to use when you didn't explicitly set `--engine`:
+- Models containing `codex` -> Codex CLI
+- `opus|sonnet|haiku` or `claude*` -> Claude CLI
+- `gemini*` -> Gemini CLI
+
+Examples:
+```bash
+aictx run --model gpt-5.1-codex-max   # uses Codex
+aictx run --model sonnet              # uses Claude
+aictx run --model gemini-2.0-flash    # uses Gemini
+```
+
+
 ### Background finalize safety
 - `aictx run` writes a pending job under `.aictx/pending/` **before** starting the session.
 - A best-effort `trap` finalizes on normal exits.
