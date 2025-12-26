@@ -2,6 +2,8 @@
 set -euo pipefail
 # shellcheck source=../core.sh
 source "${AICTX_HOME}/lib/core.sh"
+# shellcheck source=../prompt.sh
+source "${AICTX_HOME}/lib/prompt.sh"
 
 aictx_codex_run(){
   local model="$1" prompt_file="$2" transcript="$3"
@@ -10,20 +12,13 @@ aictx_codex_run(){
 
 aictx_codex_finalize(){
   local model="$1" session="$2" transcript="$3"
+  local finalize_prompt
+  finalize_prompt="$(aictx_build_finalize_prompt "$session" "$transcript")"
+
   codex exec --cd "$AICTX_ROOT" --model "$model" --full-auto "You're the session finalizer.
 
-Update these files in-place:
-- .aictx/DIGEST.md (compact working memory; keep <= ~80 lines; bullets; no fluff)
-- .aictx/CONTEXT.md (<= 30 lines, factual & stable only)
-- .aictx/DECISIONS.md (append-only, dated)
-- .aictx/TODO.md (actionable tasks)
-- $session (fill Objective / What was done / Decisions / Next steps)
+$(cat "$finalize_prompt")
 
-Transcript source of truth:
-$transcript
-
-Rules:
-- Do not invent facts. If unsure, write 'Unknown'.
-- Prefer updating DIGEST.md rather than expanding other files.
-Now perform the updates directly in the repository files."
+Now perform the updates directly in the repository files (not as patch, but direct edits)."
+  rm -f "$finalize_prompt"
 }
