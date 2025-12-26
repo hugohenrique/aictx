@@ -4,9 +4,10 @@ Per-project persistent AI context runner that supports **Codex CLI**, **Claude C
 
 ## Why token-optimized?
 By default, `aictx run` uses `prompt_mode=paths`:
-- The initial prompt is tiny and points the model to read local files.
+- The initial prompt is tiny (now 2 lines) and points the model to read local files.
 - The model reads `.aictx/DIGEST.md` first (compact working memory).
 - Detailed docs remain on disk (CONTEXT/DECISIONS/TODO/sessions) but are not inlined into the prompt.
+- Transcripts are sanitized (strip ANSI/control noise, collapse blank lines) before finalize to avoid wasting tokens on terminal noise.
 
 If you want the previous (token-heavy) behavior, set:
 ```json

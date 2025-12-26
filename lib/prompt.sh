@@ -23,47 +23,32 @@ aictx_build_prompt(){
 
   if [[ "$mode" == "inline" ]]; then
     {
-      echo "# Project Context (aictx — inline mode)"
-      echo
+      echo "# aictx inline"
       cat "$AICTX_DIR/PROMPT.md"
-      echo
       echo "## DIGEST.md"
       cat "$AICTX_DIGEST_FILE" 2>/dev/null || true
-      echo
       echo "## CONTEXT.md"
       cat "$AICTX_DIR/CONTEXT.md"
-      echo
       echo "## DECISIONS.md"
       cat "$AICTX_DIR/DECISIONS.md"
-      echo
       echo "## TODO.md"
       cat "$AICTX_DIR/TODO.md"
-      echo
       if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]]; then
         echo "## Previous session"
         cat "$prev_session"
-        echo
       fi
-      echo "## Active session file (must be updated by end)"
+      echo "## Session file to update"
       echo "$session_file"
-      echo
-      echo "Start by reading files. Work normally."
     } > "$out"
   else
+    local prev_note=""
+    if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]]; then
+      prev_note=" $prev_session"
+    fi
     {
-      echo "# aictx — paths mode"
-      echo
-      echo "Read from disk (no pastes):"
-      echo "- $AICTX_DIR/PROMPT.md (instructions)"
-      echo "- $AICTX_DIGEST_FILE (working memory, read FIRST)"
-      echo
-      echo "If needed:"
-      echo "- $AICTX_DIR/CONTEXT.md, DECISIONS.md, TODO.md"
-      if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]]; then
-        echo "- $prev_session"
-      fi
-      echo
-      echo "Update at end: $session_file"
+      echo "# aictx paths"
+      echo "Read: $AICTX_DIR/PROMPT.md; $AICTX_DIGEST_FILE (first). Optional: $AICTX_DIR/CONTEXT.md $AICTX_DIR/DECISIONS.md $AICTX_DIR/TODO.md$prev_note"
+      echo "Update session file: $session_file"
     } > "$out"
   fi
 
