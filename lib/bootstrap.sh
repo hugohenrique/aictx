@@ -46,8 +46,14 @@ aictx_migrate_legacy_if_present(){
     for f in PROMPT.md CONTEXT.md DECISIONS.md TODO.md; do
       [[ -f "$AICTX_DIR/$f" ]] || [[ ! -f "$AICTX_LEGACY_DIR/$f" ]] || cp "$AICTX_LEGACY_DIR/$f" "$AICTX_DIR/$f"
     done
-    [[ -d "$AICTX_LEGACY_DIR/sessions" ]] && { mkdir -p "$AICTX_SESS_DIR"; cp -n "$AICTX_LEGACY_DIR/sessions/"*.md "$AICTX_SESS_DIR/" 2>/dev/null || true; }
-    [[ -d "$AICTX_LEGACY_DIR/transcripts" ]] && { mkdir -p "$AICTX_TRS_DIR"; cp -n "$AICTX_LEGACY_DIR/transcripts/"*.log "$AICTX_TRS_DIR/" 2>/dev/null || true; }
+    if [[ -d "$AICTX_LEGACY_DIR/sessions" ]]; then
+      mkdir -p "$AICTX_SESS_DIR"
+      cp -n "$AICTX_LEGACY_DIR/sessions/"*.md "$AICTX_SESS_DIR/" 2>/dev/null || ai_log "warning: some session files may not have copied"
+    fi
+    if [[ -d "$AICTX_LEGACY_DIR/transcripts" ]]; then
+      mkdir -p "$AICTX_TRS_DIR"
+      cp -n "$AICTX_LEGACY_DIR/transcripts/"*.log "$AICTX_TRS_DIR/" 2>/dev/null || ai_log "warning: some transcript files may not have copied"
+    fi
 
     mv "$AICTX_LEGACY_DIR" "$bak"
     ai_log "legacy moved to backup: $bak"

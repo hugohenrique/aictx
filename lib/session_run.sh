@@ -19,23 +19,6 @@ source "${AICTX_HOME}/lib/engines/claude.sh"
 # shellcheck source=./engines/gemini.sh
 source "${AICTX_HOME}/lib/engines/gemini.sh"
 
-aictx_infer_engine_from_model(){
-  # level-1: only route to the correct CLI based on model string
-  local m="$1"
-  m="$(echo "$m" | tr '[:upper:]' '[:lower:]')"
-
-  # Codex models usually contain "codex"
-  if [[ "$m" == *"codex"* ]]; then echo "codex"; return; fi
-
-  # Claude models often are opus/sonnet/haiku or start with "claude"
-  if [[ "$m" == "opus" || "$m" == "sonnet" || "$m" == "haiku" || "$m" == claude* ]]; then echo "claude"; return; fi
-
-  # Gemini models typically start with "gemini"
-  if [[ "$m" == gemini* ]]; then echo "gemini"; return; fi
-
-  echo "auto"
-}
-
 aictx_status(){
   aictx_paths_init
   if [[ ! -d "$AICTX_DIR" && ! -d "$AICTX_LEGACY_DIR" ]]; then
@@ -128,6 +111,6 @@ fi
   if [[ "$no_finalize" == "1" || "$AICTX_FINALIZE" != "true" ]]; then
     ai_log "finalize skipped; watcher will handle pending later."
   else
-    aictx_pending_mark_done "$pending" || true
+    aictx_pending_mark_done "$pending" || ai_log "warning: failed to mark pending as done: $pending"
   fi
 }

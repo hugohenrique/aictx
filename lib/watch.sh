@@ -29,18 +29,30 @@ aictx_watch(){
     for p in "$AICTX_PENDING_DIR"/*.json; do
       [[ -f "$p" ]] || continue
 
+      # Extract all JSON fields in one operation (4x more efficient)
       local engine model session transcript
-      engine="$(grep -E '"engine"' "$p" | head -n1 | sed -E 's/.*"engine"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
-      model="$(grep -E '"model"' "$p" | head -n1 | sed -E 's/.*"model"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
-      session="$(grep -E '"session"' "$p" | head -n1 | sed -E 's/.*"session"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
-      transcript="$(grep -E '"transcript"' "$p" | head -n1 | sed -E 's/.*"transcript"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')"
+      local values
+      values="$(ai_json_get_multi "$p" "engine model session transcript")"
+
+      # Parse results (newline-separated)
+      engine="$(echo "$values" | sed -n '1p')"
+      model="$(echo "$values" | sed -n '2p')"
+      session="$(echo "$values" | sed -n '3p')"
+      transcript="$(echo "$values" | sed -n '4p')"
+
+      # Validate all required fields are present
+      if [[ -z "$engine" || -z "$model" || -z "$session" || -z "$transcript" ]]; then
+        ai_log "invalid pending file (missing fields): $p"
+        continue
+      fi
 
       if [[ -f "$transcript" ]]; then
-        local s1 s2
-        s1="$(wc -c < "$transcript" 2>/dev/null || echo 0)"
+        # Check if transcript is stable (no modifications for 2 seconds)
+        local mtime1 mtime2
+        mtime1="$(ai_stat_mtime "$transcript")"
         sleep 2
-        s2="$(wc -c < "$transcript" 2>/dev/null || echo 0)"
-        if [[ "$s1" == "$s2" ]]; then
+        mtime2="$(ai_stat_mtime "$transcript")"
+        if [[ "$mtime1" == "$mtime2" ]]; then
           ai_log "finalizing pending: $p"
           if aictx_finalize_one "$engine" "$model" "$session" "$transcript"; then
             aictx_pending_mark_done "$p"

@@ -18,11 +18,15 @@ migrate_2_to_3(){
 
   if [[ -f "$AICTX_DIR/config.json" ]] && ! grep -q '"prompt_mode"' "$AICTX_DIR/config.json"; then
     tmp="$(ai_mktemp)"
-    awk '
+    if ! awk '
       BEGIN{added=0}
       /^\s*}\s*$/{ if(!added){ print "  ,"prompt_mode": "paths""; added=1 } }
       {print}
-    ' "$AICTX_DIR/config.json" > "$tmp" || true
+    ' "$AICTX_DIR/config.json" > "$tmp"; then
+      ai_log "warning: migration 2->3 awk failed (prompt_mode)"
+      rm -f "$tmp"
+      return 0
+    fi
     if grep -q '"prompt_mode"' "$tmp"; then
       mv "$tmp" "$AICTX_DIR/config.json"
     else
@@ -34,11 +38,15 @@ migrate_2_to_3(){
 migrate_3_to_4(){
   if [[ -f "$AICTX_DIR/config.json" ]] && ! grep -q '"gemini_model"' "$AICTX_DIR/config.json"; then
     tmp="$(ai_mktemp)"
-    awk '
+    if ! awk '
       BEGIN{added=0}
       /^\s*}\s*$/{ if(!added){ print "  ,"gemini_model": "auto""; added=1 } }
       {print}
-    ' "$AICTX_DIR/config.json" > "$tmp" || true
+    ' "$AICTX_DIR/config.json" > "$tmp"; then
+      ai_log "warning: migration 3->4 awk failed"
+      rm -f "$tmp"
+      return 0
+    fi
     if grep -q '"gemini_model"' "$tmp"; then
       mv "$tmp" "$AICTX_DIR/config.json"
     else

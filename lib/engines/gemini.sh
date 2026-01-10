@@ -15,21 +15,5 @@ aictx_gemini_run(){
 
 aictx_gemini_finalize(){
   local model="$1" session="$2" transcript="$3"
-
-  ai_cmd git || { ai_log "git not found; skipping gemini auto-apply"; return 0; }
-  git -C "$AICTX_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || { ai_log "not a git repo; skipping"; return 0; }
-
-  local patch finalize_prompt
-  patch="$AICTX_DIR/finalizer_$(date +"%Y-%m-%d_%H-%M").diff"
-  finalize_prompt="$(aictx_build_finalize_prompt "$session" "$transcript")"
-
-  gemini --model "$model" -p "$(cat "$finalize_prompt")" > "$patch"
-  rm -f "$finalize_prompt"
-
-  [[ -s "$patch" ]] || { ai_log "empty patch; keeping $patch"; return 0; }
-  if git -C "$AICTX_ROOT" apply --whitespace=nowarn "$patch"; then
-    rm -f "$patch"
-  else
-    ai_log "patch failed, kept: $patch"
-  fi
+  aictx_finalize_base "gemini" "$model" "$session" "$transcript"
 }

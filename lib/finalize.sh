@@ -27,17 +27,6 @@ aictx_choose_engine(){
   fi
 }
 
-aictx_infer_engine_from_model(){
-  # level-1: only route to the correct CLI based on model string
-  local m="$1"
-  m="$(echo "$m" | tr '[:upper:]' '[:lower:]')"
-
-  if [[ "$m" == *"codex"* ]]; then echo "codex"; return; fi
-  if [[ "$m" == "opus" || "$m" == "sonnet" || "$m" == "haiku" || "$m" == claude* ]]; then echo "claude"; return; fi
-  if [[ "$m" == gemini* ]]; then echo "gemini"; return; fi
-  echo "auto"
-}
-
 aictx_finalize_one(){
   local engine="$1" model="$2" session="$3" transcript="$4"
   [[ -f "$transcript" ]] || { ai_log "missing transcript: $transcript"; return 1; }

@@ -11,7 +11,7 @@ aictx_new_session(){
   if sed -i.bak "s/{{TS}}/$ts/g" "$file" 2>/dev/null; then
     rm -f "$file.bak" 2>/dev/null || true
   else
-    sed -i '' "s/{{TS}}/$ts/g" "$file" 2>/dev/null || true
+    sed -i '' "s/{{TS}}/$ts/g" "$file" 2>/dev/null || ai_log "warning: sed substitution failed on $file"
   fi
   echo "$file"
 }

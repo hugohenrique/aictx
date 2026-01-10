@@ -6,7 +6,7 @@ source "${AICTX_HOME}/lib/core.sh"
 aictx_install_launchd(){
   ai_is_macos || ai_die "install-launchd is macOS only"
 
-  local label="com.hugo.aictx.watch"
+  local label="com.${USER}.aictx.watch"
   local plist="$HOME/Library/LaunchAgents/${label}.plist"
   local logdir="$HOME/Library/Logs/aictx"
   mkdir -p "$logdir"
