@@ -45,8 +45,6 @@ migrate_3_to_4(){
       rm -f "$tmp"
     fi
   fi
-
-  [[ -f "$AICTX_ROOT/GEMINI.md" ]] || cp "$AICTX_HOME/templates/GEMINI.md" "$AICTX_ROOT/GEMINI.md"
 }
 
 aictx_run_migrations(){

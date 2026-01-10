@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/prompt.sh"
 aictx_gemini_run(){
   local model="$1" transcript="$2"
   # Gemini CLI loads project instructions from repo-root GEMINI.md automatically.
+  # Create GEMINI.md only when using gemini engine.
+  [[ -f "$AICTX_ROOT/GEMINI.md" ]] || cp "$AICTX_HOME/templates/GEMINI.md" "$AICTX_ROOT/GEMINI.md"
   run_with_script_transcript "$transcript" gemini --model "$model"
 }
 

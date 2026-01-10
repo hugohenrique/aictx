@@ -24,9 +24,6 @@ aictx_init_templates(){
   aictx_copy_if_missing "$AICTX_HOME/templates/config.json" "$AICTX_CONFIG_FILE"
   aictx_copy_if_missing "$AICTX_HOME/templates/DIGEST.md" "$AICTX_DIGEST_FILE"
 
-  # Gemini CLI uses a repo-root GEMINI.md for persistent instructions.
-  [[ -f "$AICTX_ROOT/GEMINI.md" ]] || cp "$AICTX_HOME/templates/GEMINI.md" "$AICTX_ROOT/GEMINI.md"
-
   [[ -f "$AICTX_SCHEMA_FILE" ]] || echo "1" > "$AICTX_SCHEMA_FILE"
   [[ -f "$AICTX_INIT_MARK" ]] || date > "$AICTX_INIT_MARK"
 }
