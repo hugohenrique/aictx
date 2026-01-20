@@ -79,6 +79,9 @@ local eng; eng="$(aictx_choose_engine "$engine")"
   ts="$(date +"%Y-%m-%d_%H-%M")"
   transcript="$AICTX_TRS_DIR/${eng}_$ts.log"
 
+  # Phase 3: snapshot DIGEST before run for delta-based finalize
+  aictx_snapshot_digest
+
   local pending
   pending="$(aictx_pending_create "$eng" "$model" "$session" "$transcript")"
 if [[ "$inferred_from_model" == "1" ]]; then
