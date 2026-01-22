@@ -1,10 +1,8 @@
 Output ONE git-apply diff only.
-
-Update from {{TRANSCRIPT_FILE}}:
-- .aictx/DIGEST.md (≤80 lines, bullets)
-- .aictx/CONTEXT.md (≤30 lines, stable)
-- .aictx/DECISIONS.md (append, dated)
-- .aictx/TODO.md (actionable)
+Use {{TRANSCRIPT_FILE}}. Update:
+- .aictx/DIGEST.md (≤60 lines, bullets, fixed sections: Snapshot/Active Focus/Recent Decisions/Known Issues / Gotchas/Constraints)
+- .aictx/CONTEXT.md (≤20 lines, stable facts only)
+- .aictx/DECISIONS.md (append-only, dated)
+- .aictx/TODO.md (actionable only)
 - {{SESSION_FILE}} (objective/done/decisions/next)
-
-Rules: no invented facts; prefer DIGEST; minimal edits.
+Rules: no invented facts; prefer DIGEST; minimal edits; project memory only (not history); apply Memory Triggers + Memory Cost Rule.

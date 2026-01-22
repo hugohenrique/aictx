@@ -1,21 +1,19 @@
-# DIGEST (compact working memory)
+# DIGEST (≤60 lines, bullets only)
 
-Keep this file short (<= ~80 lines).
-Use bullets. No fluff.
-
-## Project snapshot
+## Snapshot
 - Project:
 - Goal:
 - Stack:
+- Token savings:
 
-## Current focus
+## Active Focus
 - 
 
-## Important decisions (recent)
+## Recent Decisions
 - 
 
-## Active tasks (next)
+## Known Issues / Gotchas
 - 
 
-## Gotchas / constraints
+## Constraints
 - 
