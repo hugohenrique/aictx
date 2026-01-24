@@ -1,16 +1,19 @@
 # DIGEST (≤60 lines, bullets only)
 
-## Project
-- Project: | Goal: | Stack:
+## Snapshot
+- Project:
+- Goal:
+- Stack:
+- Token savings:
 
-## Focus
--
+## Active Focus
+- 
 
-## Decisions (recent)
--
+## Recent Decisions
+- 
 
-## Tasks
--
+## Known Issues / Gotchas
+- 
 
 ## Constraints
--
+- 
