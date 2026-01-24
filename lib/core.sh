@@ -34,7 +34,7 @@ import re, sys, pathlib
 path = pathlib.Path(sys.argv[1])
 text = path.read_text(errors="ignore")
 text = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', text)       # CSI
-text = re.sub(r'\x1b\][^\x07]*(\x07|\\)', '', text)       # OSC
+text = re.sub(r'\x1b\][^\a]*(\x07|\\)', '', text)       # OSC
 text = re.sub(r'[\x00-\x08\x0b-\x1f\x7f]', '', text)      # control chars (keep \t/\n)
 
 clean = []
@@ -57,6 +57,138 @@ PY
   fi
 
   mv "$tmp" "$file" 2>/dev/null || cp "$tmp" "$file"
+}
+
+ai_compress_transcript(){
+  # Phase 3: Intelligent transcript compression for token optimization
+  # Requires Python 3 for advanced processing
+  local file="$1"
+  [[ -f "$file" ]] || return 0
+
+  command -v python3 >/dev/null 2>&1 || { ai_log "Python3 not found, skipping compression"; return 0; }
+
+  local tmp; tmp="$(ai_mktemp)"
+
+  python3 - "$file" <<'PY' >"$tmp" 2>/dev/null || { rm -f "$tmp" 2>/dev/null || true; return 0; }
+import re, sys, pathlib
+from collections import defaultdict
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(errors="ignore")
+lines = text.splitlines()
+
+# Layer 1: Identify command patterns (read-only vs write operations)
+readonly_cmds = {'ls', 'cat', 'head', 'tail', 'grep', 'find', 'git status', 'git log', 'git diff', 'pwd', 'which', 'echo'}
+important_cmds = {'git', 'npm', 'pip', 'cargo', 'make', 'docker', 'kubectl'}
+
+# Layer 2: Track repeated errors/warnings
+error_counts = defaultdict(int)
+error_pattern = re.compile(r'(error|ERROR|Error|warning|WARNING|Warning|failed|FAILED|Failed):\s*(.+)')
+
+# Layer 3: Track duplicate tool outputs
+last_readonly_cmd = {}
+compressed = []
+skip_until_next_cmd = False
+consecutive_empty = 0
+
+i = 0
+while i < len(lines):
+    line = lines[i].strip()
+
+    # Skip excessive blank lines
+    if not line:
+        consecutive_empty += 1
+        if consecutive_empty <= 2:
+            compressed.append('')
+        i += 1
+        continue
+
+    consecutive_empty = 0
+
+    # Detect command execution (common patterns)
+    is_cmd = line.startswith('$') or line.startswith('>') or line.startswith('#')
+
+    # Layer 2: Collapse repeated errors
+    error_match = error_pattern.search(line)
+    if error_match:
+        error_key = error_match.group(2)[:100]  # First 100 chars of error
+        error_counts[error_key] += 1
+        if error_counts[error_key] == 1:
+            compressed.append(lines[i])
+        elif error_counts[error_key] == 2:
+            # Replace previous with counted version
+            for j in range(len(compressed) - 1, -1, -1):
+                if error_key in compressed[j]:
+                    compressed[j] += f" (repeated 2x)"
+                    break
+        else:
+            # Update count
+            for j in range(len(compressed) - 1, -1, -1):
+                if error_key in compressed[j] and 'repeated' in compressed[j]:
+                    compressed[j] = re.sub(r'\(repeated \d+x\)', f'(repeated {error_counts[error_key]}x)', compressed[j])
+                    break
+        i += 1
+        continue
+
+    # Layer 3: Deduplicate readonly command outputs
+    if is_cmd:
+        cmd_text = line.lstrip('$>#').strip()
+        is_readonly = any(cmd_text.startswith(c) for c in readonly_cmds)
+
+        if is_readonly:
+            # Collect output for this command
+            output_start = i + 1
+            output_lines = []
+            j = i + 1
+            while j < len(lines) and not (lines[j].strip().startswith('$') or lines[j].strip().startswith('>')):
+                output_lines.append(lines[j])
+                j += 1
+
+            output_hash = hash('\n'.join(output_lines[:50]))  # Hash first 50 lines
+
+            if cmd_text in last_readonly_cmd and last_readonly_cmd[cmd_text] == output_hash:
+                # Skip duplicate readonly output
+                compressed.append(f"{lines[i]} # [output omitted - unchanged from previous run]")
+                i = j
+                continue
+            else:
+                last_readonly_cmd[cmd_text] = output_hash
+
+    # Layer 4: Truncate very long outputs (npm install, etc)
+    if not is_cmd and i > 0:
+        # Look ahead to see if this is a very long output block
+        block_start = i
+        block_lines = 0
+        j = i
+        while j < len(lines) and not (lines[j].strip().startswith('$') or lines[j].strip().startswith('>')):
+            if lines[j].strip():
+                block_lines += 1
+            j += 1
+
+        # If block is > 100 lines, summarize middle
+        if block_lines > 100:
+            # Keep first 20 and last 20 lines
+            for k in range(i, min(i + 20, j)):
+                compressed.append(lines[k])
+            compressed.append(f"\n... [{block_lines - 40} lines omitted] ...\n")
+            for k in range(max(j - 20, i + 20), j):
+                compressed.append(lines[k])
+            i = j
+            continue
+
+    compressed.append(lines[i])
+    i += 1
+
+output = '\n'.join(compressed).strip()
+if output:
+    sys.stdout.write(output + '\n')
+PY
+
+  if [[ -f "$tmp" && -s "$tmp" ]]; then
+    mv "$tmp" "$file" 2>/dev/null || cp "$tmp" "$file"
+  else
+    rm -f "$tmp" 2>/dev/null || true
+  fi
 }
 
 ai_stat_mtime(){
@@ -175,4 +307,5 @@ run_with_script_transcript() {
     fi
   fi
   ai_sanitize_transcript "$transcript"
+  ai_compress_transcript "$transcript"  # Phase 3: intelligent compression
 }

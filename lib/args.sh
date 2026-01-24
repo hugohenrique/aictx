@@ -17,6 +17,8 @@ source "${AICTX_HOME}/lib/finalize.sh"
 source "${AICTX_HOME}/lib/watch.sh"
 # shellcheck source=./launchd.sh
 source "${AICTX_HOME}/lib/launchd.sh"
+# shellcheck source=./cleanup.sh
+source "${AICTX_HOME}/lib/cleanup.sh"
 
 aictx_usage(){
   cat <<EOF
@@ -27,6 +29,7 @@ Commands:
   run                  run interactive session (codex/claude/gemini)
   finalize             finalize latest (or specified) transcript/session
   watch                background worker to finalize pending items
+  cleanup              cleanup old sessions & pending artifacts (token optimization)
   status               show context status
   doctor               check dependencies and setup
   install-launchd      install macOS LaunchAgent for background watch
@@ -64,6 +67,7 @@ aictx_main(){
     run) aictx_run "$@" ;;
     finalize) aictx_finalize_cmd "$@" ;;
     watch) aictx_watch "$@" ;;
+    cleanup) aictx_cleanup_all "$@" ;;
     status) aictx_status "$@" ;;
     doctor) aictx_doctor "$@" ;;
     install-launchd) aictx_install_launchd "$@" ;;

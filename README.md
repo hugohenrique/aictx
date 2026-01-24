@@ -9,6 +9,20 @@ By default, `aictx run` uses `prompt_mode=paths`:
 - Detailed docs remain on disk (CONTEXT/DECISIONS/TODO/sessions) but are not inlined into the prompt.
 - Transcripts are sanitized (strip ANSI/control noise, collapse blank lines) before finalize to avoid wasting tokens on terminal noise.
 
+### Advanced Token Optimizations (Phase 1+2)
+aictx implements aggressive token optimization achieving **40-60% reduction**:
+
+- **Template minification**: Compressed prompts using semantic abbreviations
+- **Lazy file loading**: Skips empty TODO.md, old DECISIONS.md, stale sessions
+- **Context caching**: Hash-based caching for stable CONTEXT.md (24h validity)
+- **Session cleanup**: Auto-archive old sessions, keep last 5 recent
+
+**Typical savings: 400-850 tokens per run**
+
+See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed guide and best practices.
+
+Use `aictx cleanup` to manually trigger session cleanup and optimization.
+
 If you want the previous (token-heavy) behavior, set:
 ```json
 { "prompt_mode": "inline" }
