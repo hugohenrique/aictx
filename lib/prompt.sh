@@ -18,12 +18,35 @@ aictx_should_load_decisions(){
   local decisions_file="$AICTX_DIR/DECISIONS.md"
   [[ ! -f "$decisions_file" ]] && return 1
 
-  # Check if has decisions from last 7 days
-  local seven_days_ago=$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d 2>/dev/null || echo "2000-01-01")
+  # Check if has decisions from last 7 days (accurate date parsing if possible)
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$decisions_file" <<'PY' >/dev/null 2>&1
+import re
+import sys
+from datetime import date, timedelta
+from pathlib import Path
 
-  # Look for recent date headers (## YYYY-MM-DD)
-  if grep -E "^## [0-9]{4}-[0-9]{2}-[0-9]{2}" "$decisions_file" 2>/dev/null | head -1 | grep -q "$seven_days_ago\\|$(date +%Y-%m)"; then
-    return 0
+path = Path(sys.argv[1])
+text = path.read_text(errors="ignore")
+dates = re.findall(r"^##\\s+(\\d{4}-\\d{2}-\\d{2})\\s*$", text, flags=re.M)
+if not dates:
+    sys.exit(2)  # no parseable dates; fallback to line count
+
+cutoff = date.today() - timedelta(days=7)
+for d in dates:
+    try:
+        dt = date.fromisoformat(d)
+    except ValueError:
+        continue
+    if dt >= cutoff:
+        sys.exit(0)
+sys.exit(1)
+PY
+    case "$?" in
+      0) return 0 ;;
+      1) return 1 ;;
+      2) : ;; # fallback below
+    esac
   fi
 
   # If can't parse dates, include if file has content
@@ -216,12 +239,22 @@ aictx_build_prompt(){
 
     {
       echo "# aictx paths"
-      if [[ -n "$optional_files" ]]; then
-        echo "Read: $AICTX_DIR/PROMPT.md; $AICTX_DIGEST_FILE (first). Optional:$optional_files$context_note"
+      local prompt_rel="${AICTX_DIR#$AICTX_ROOT/}/PROMPT.md"
+      local digest_rel="${AICTX_DIGEST_FILE#$AICTX_ROOT/}"
+      local opt_rel=""
+      for f in $optional_files; do
+        [[ -n "$opt_rel" ]] && opt_rel+=" "
+        opt_rel+="${f#$AICTX_ROOT/}"
+      done
+
+      local session_rel="${session_file#$AICTX_ROOT/}"
+
+      if [[ -n "$opt_rel" ]]; then
+        echo "Read: $prompt_rel; $digest_rel first. Opt: $opt_rel$context_note"
       else
-        echo "Read: $AICTX_DIR/PROMPT.md; $AICTX_DIGEST_FILE (first).$context_note"
+        echo "Read: $prompt_rel; $digest_rel first.$context_note"
       fi
-      echo "Update session file: $session_file"
+      echo "Session: $session_rel"
     } > "$out"
   fi
 

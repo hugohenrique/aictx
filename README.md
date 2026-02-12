@@ -21,7 +21,12 @@ aictx implements aggressive token optimization achieving **40-60% reduction**:
 
 See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed guide and best practices.
 
-Use `aictx cleanup` to manually trigger session cleanup and optimization.
+Use `aictx cleanup` to manually trigger cleanup and optimization.
+
+Auto-cleanup runs on `aictx run` by default. Configurable in `.aictx/config.json`:
+- `auto_cleanup`: enable/disable (default `true`)
+- `decision_keep_days`: archive decisions older than N days (default `90`)
+- `transcript_keep_days`: archive transcripts older than N days (default `30`)
 
 If you want the previous (token-heavy) behavior, set:
 ```json
@@ -48,6 +53,9 @@ aictx run                 # engine auto (prefers codex > claude > gemini if inst
 aictx run --engine claude  # choose Claude
 aictx run --engine gemini  # choose Gemini
 ```
+
+`aictx init` also creates a project skill at `.aictx/skills/<project>-aictx/SKILL.md` for repo-specific guidance.
+`aictx init` also appends an `aictx` section to `AGENTS.md` (or creates it) so Codex app follows the same context rules.
 
 ### Gemini CLI notes
 - `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.

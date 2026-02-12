@@ -79,7 +79,6 @@ lines = text.splitlines()
 
 # Layer 1: Identify command patterns (read-only vs write operations)
 readonly_cmds = {'ls', 'cat', 'head', 'tail', 'grep', 'find', 'git status', 'git log', 'git diff', 'pwd', 'which', 'echo'}
-important_cmds = {'git', 'npm', 'pip', 'cargo', 'make', 'docker', 'kubectl'}
 
 # Layer 2: Track repeated errors/warnings
 error_counts = defaultdict(int)
@@ -88,7 +87,6 @@ error_pattern = re.compile(r'(error|ERROR|Error|warning|WARNING|Warning|failed|F
 # Layer 3: Track duplicate tool outputs
 last_readonly_cmd = {}
 compressed = []
-skip_until_next_cmd = False
 consecutive_empty = 0
 
 i = 0

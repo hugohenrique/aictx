@@ -1,0 +1,4 @@
+interface:
+  display_name: "AICTX Maintainer"
+  short_description: "Maintain and evolve the aictx CLI workflows"
+  default_prompt: "Maintain and improve the aictx CLI and its token-optimized context flow."

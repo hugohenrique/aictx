@@ -10,6 +10,9 @@ AICTX_GEMINI_MODEL_DEFAULT="auto"
 AICTX_SESSION_REUSE_SECONDS_DEFAULT=$((2*60*60))
 AICTX_FINALIZE_DEFAULT="true"
 AICTX_PROMPT_MODE_DEFAULT="paths" # paths|inline
+AICTX_AUTO_CLEANUP_DEFAULT="true"
+AICTX_DECISION_KEEP_DAYS_DEFAULT="90"
+AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT="30"
 
 aictx_json_get(){
   local file="$1" key="$2" def="$3"
@@ -32,4 +35,7 @@ aictx_load_config(){
   export AICTX_SESSION_REUSE_SECONDS; AICTX_SESSION_REUSE_SECONDS="$(aictx_json_get "$cfg" "session_reuse_seconds" "$AICTX_SESSION_REUSE_SECONDS_DEFAULT")"
   export AICTX_FINALIZE; AICTX_FINALIZE="$(aictx_json_get "$cfg" "finalize" "$AICTX_FINALIZE_DEFAULT")"
   export AICTX_PROMPT_MODE; AICTX_PROMPT_MODE="$(aictx_json_get "$cfg" "prompt_mode" "$AICTX_PROMPT_MODE_DEFAULT")"
+  export AICTX_AUTO_CLEANUP; AICTX_AUTO_CLEANUP="$(aictx_json_get "$cfg" "auto_cleanup" "$AICTX_AUTO_CLEANUP_DEFAULT")"
+  export AICTX_DECISION_KEEP_DAYS; AICTX_DECISION_KEEP_DAYS="$(aictx_json_get "$cfg" "decision_keep_days" "$AICTX_DECISION_KEEP_DAYS_DEFAULT")"
+  export AICTX_TRANSCRIPT_KEEP_DAYS; AICTX_TRANSCRIPT_KEEP_DAYS="$(aictx_json_get "$cfg" "transcript_keep_days" "$AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT")"
 }

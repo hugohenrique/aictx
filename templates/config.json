@@ -5,5 +5,8 @@
   "gemini_model": "auto",
   "session_reuse_seconds": 7200,
   "finalize": true,
-  "prompt_mode": "paths"
+  "prompt_mode": "paths",
+  "auto_cleanup": true,
+  "decision_keep_days": 90,
+  "transcript_keep_days": 30
 }

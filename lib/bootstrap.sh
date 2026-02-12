@@ -7,11 +7,94 @@ source "${AICTX_HOME}/lib/fs.sh"
 # shellcheck source=./migrate.sh
 source "${AICTX_HOME}/lib/migrate.sh"
 
-AICTX_SCHEMA_CURRENT="4"
+AICTX_SCHEMA_CURRENT="5"
 
 aictx_copy_if_missing(){
   local src="$1" dst="$2"
   [[ -f "$dst" ]] || cp "$src" "$dst"
+}
+
+aictx_skill_slug(){
+  local input="$1"
+  input="$(echo "$input" | tr '[:upper:]' '[:lower:]')"
+  input="$(echo "$input" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//; s/-+/-/g')"
+  echo "$input"
+}
+
+aictx_init_project_skill(){
+  local base slug max_base skill_name skill_dir skill_md
+  base="$(basename "$AICTX_ROOT")"
+  slug="$(aictx_skill_slug "$base")"
+  [[ -n "$slug" ]] || slug="project"
+
+  max_base=58
+  if [[ ${#slug} -gt $max_base ]]; then
+    slug="${slug:0:$max_base}"
+    slug="$(echo "$slug" | sed -E 's/-+$//')"
+    [[ -n "$slug" ]] || slug="project"
+  fi
+
+  skill_name="${slug}-aictx"
+  skill_dir="$AICTX_DIR/skills/$skill_name"
+  skill_md="$skill_dir/SKILL.md"
+
+  [[ -f "$skill_md" ]] && return 0
+
+  mkdir -p "$skill_dir"
+  cat > "$skill_md" <<EOF
+---
+name: $skill_name
+description: Project-specific skill for the $base repository. Use when working in this repo, updating aictx context files, or maintaining the aictx workflow for this project.
+---
+
+# $base Project Skill
+
+## Overview
+Provide context for work in this repository using the aictx memory files and current session summary.
+
+## Context Sources
+- Read files listed by the aictx paths header (always PROMPT.md and DIGEST.md; optional files only when listed).
+- Keep DIGEST concise (<= 60 lines, bullets).
+- Keep CONTEXT stable (<= 20 lines).
+- Keep DECISIONS append-only with date headers.
+- Keep TODO actionable only.
+
+## Repository Root
+- Path: $AICTX_ROOT
+EOF
+}
+
+aictx_init_agents_md(){
+  local file="$AICTX_ROOT/AGENTS.md"
+  local marker="<!-- aictx -->"
+
+  if [[ -f "$file" ]]; then
+    grep -q "$marker" "$file" && return 0
+    cat >> "$file" <<EOF
+
+$marker
+## aictx
+- Follow the aictx paths header: always read PROMPT.md and DIGEST.md first.
+- Read optional files only if they are listed in the header.
+- Do not read older sessions unless explicitly listed.
+- Keep DIGEST <= 60 lines, bullets only.
+- Keep CONTEXT <= 20 lines and stable.
+- Append DECISIONS with date headers.
+- Keep TODO actionable only.
+EOF
+  else
+    cat > "$file" <<EOF
+$marker
+## aictx
+- Follow the aictx paths header: always read PROMPT.md and DIGEST.md first.
+- Read optional files only if they are listed in the header.
+- Do not read older sessions unless explicitly listed.
+- Keep DIGEST <= 60 lines, bullets only.
+- Keep CONTEXT <= 20 lines and stable.
+- Append DECISIONS with date headers.
+- Keep TODO actionable only.
+EOF
+  fi
 }
 
 aictx_init_templates(){
@@ -64,6 +147,8 @@ aictx_bootstrap(){
   aictx_paths_init
   aictx_migrate_legacy_if_present
   aictx_init_templates
+  aictx_init_project_skill
+  aictx_init_agents_md
   aictx_gitignore_setup
   aictx_run_migrations "$AICTX_SCHEMA_CURRENT"
 }

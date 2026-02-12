@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Token optimization: session cleanup & consolidation
+# shellcheck source=./core.sh
+source "${AICTX_HOME}/lib/core.sh"
+# shellcheck source=./fs.sh
+source "${AICTX_HOME}/lib/fs.sh"
+# shellcheck source=./config.sh
+source "${AICTX_HOME}/lib/config.sh"
 
 aictx_cleanup_old_sessions() {
   local sessions_dir="${AICTX_DIR}/sessions"
@@ -51,9 +57,122 @@ aictx_cleanup_pending() {
   ai_log "Cleanup: pending artifacts removed"
 }
 
+aictx_cleanup_transcripts() {
+  local transcripts_dir="${AICTX_DIR}/transcripts"
+  [[ ! -d "$transcripts_dir" ]] && return 0
+
+  local keep_days="${AICTX_TRANSCRIPT_KEEP_DAYS:-30}"
+  local archive_dir="${AICTX_DIR}/archive/transcripts"
+  mkdir -p "$archive_dir"
+
+  find "$transcripts_dir" -name "*.log" -type f -mtime +"$keep_days" | while read -r log; do
+    local basename=$(basename "$log")
+    ai_log "Archiving old transcript: $basename"
+    mv "$log" "$archive_dir/" 2>/dev/null || true
+  done
+}
+
+aictx_cleanup_decisions() {
+  local decisions_file="${AICTX_DIR}/DECISIONS.md"
+  [[ -f "$decisions_file" ]] || return 0
+
+  command -v python3 >/dev/null 2>&1 || { ai_log "Python3 not found, skipping decisions cleanup"; return 0; }
+
+  local keep_days="${AICTX_DECISION_KEEP_DAYS:-90}"
+  local archive_dir="${AICTX_DIR}/archive"
+  mkdir -p "$archive_dir"
+
+  python3 - "$decisions_file" "$archive_dir" "$keep_days" <<'PY'
+import re
+import sys
+from datetime import date, timedelta
+from pathlib import Path
+
+decisions_path = Path(sys.argv[1])
+archive_dir = Path(sys.argv[2])
+keep_days = int(sys.argv[3])
+
+text = decisions_path.read_text(errors="ignore")
+lines = text.splitlines()
+
+date_re = re.compile(r"^##\\s+(\\d{4}-\\d{2}-\\d{2})\\s*$")
+
+preamble = []
+blocks = []
+current = None
+
+for line in lines:
+    match = date_re.match(line)
+    if match:
+        if current:
+            blocks.append(current)
+        current = {"date": match.group(1), "lines": [line]}
+    else:
+        if current is None:
+            preamble.append(line)
+        else:
+            current["lines"].append(line)
+
+if current:
+    blocks.append(current)
+
+if not blocks:
+    sys.exit(0)
+
+cutoff = date.today() - timedelta(days=keep_days)
+keep_blocks = []
+archive_blocks = {}
+
+for block in blocks:
+    try:
+        block_date = date.fromisoformat(block["date"])
+    except ValueError:
+        keep_blocks.append(block)
+        continue
+    if block_date < cutoff:
+        month = block["date"][:7]
+        archive_blocks.setdefault(month, []).append(block)
+    else:
+        keep_blocks.append(block)
+
+if not archive_blocks:
+    sys.exit(0)
+
+def write_archive(month, blocks_to_archive):
+    archive_path = archive_dir / f"DECISIONS_{month}.md"
+    if archive_path.exists():
+        existing = archive_path.read_text(errors="ignore").rstrip()
+    else:
+        existing = f"# Decisions Archive {month}"
+    content_lines = [existing, ""]
+    for b in blocks_to_archive:
+        content_lines.extend(b["lines"])
+        content_lines.append("")
+    archive_path.write_text("\n".join(content_lines).rstrip() + "\n")
+
+for month, month_blocks in archive_blocks.items():
+    write_archive(month, month_blocks)
+
+new_lines = []
+new_lines.extend(preamble)
+if keep_blocks:
+    if new_lines and new_lines[-1].strip():
+        new_lines.append("")
+    for b in keep_blocks:
+        new_lines.extend(b["lines"])
+        new_lines.append("")
+
+decisions_path.write_text("\n".join(new_lines).rstrip() + "\n")
+PY
+}
+
 aictx_cleanup_all() {
+  aictx_paths_init
+  aictx_load_config
   ai_log "Starting cleanup..."
   aictx_cleanup_old_sessions
   aictx_cleanup_pending
+  aictx_cleanup_transcripts
+  aictx_cleanup_decisions
   ai_log "Cleanup complete"
 }

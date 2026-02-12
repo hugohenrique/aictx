@@ -12,6 +12,8 @@ source "${AICTX_HOME}/lib/session.sh"
 source "${AICTX_HOME}/lib/prompt.sh"
 # shellcheck source=./finalize.sh
 source "${AICTX_HOME}/lib/finalize.sh"
+# shellcheck source=./cleanup.sh
+source "${AICTX_HOME}/lib/cleanup.sh"
 # shellcheck source=./engines/codex.sh
 source "${AICTX_HOME}/lib/engines/codex.sh"
 # shellcheck source=./engines/claude.sh
@@ -36,6 +38,9 @@ aictx_status(){
 aictx_run(){
   aictx_bootstrap
   aictx_load_config
+  if [[ "${AICTX_AUTO_CLEANUP}" == "true" ]]; then
+    aictx_cleanup_all
+  fi
 
   local engine="$AICTX_ENGINE" model_override="" no_finalize="0" engine_explicit="0"
   while [[ $# -gt 0 ]]; do
@@ -73,6 +78,7 @@ local eng; eng="$(aictx_choose_engine "$engine")"
   local session prev prompt_file
   session="$(aictx_session_pick)"
   prev="$(ai_latest_file "$AICTX_SESS_DIR" "*.md")"
+
   prompt_file="$(aictx_build_prompt "$session" "$prev" "$AICTX_PROMPT_MODE")"
 
   local ts transcript

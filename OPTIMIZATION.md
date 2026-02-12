@@ -40,6 +40,15 @@ This command:
 - Keeps only the 5 most recent sessions
 - Removes old pending artifacts (.done.json >7d, orphaned .json >3d)
 
+Auto-cleanup runs on `aictx run` by default and also:
+- Archives transcripts older than `transcript_keep_days` (default 30)
+- Archives decisions older than `decision_keep_days` (default 90)
+
+Configure in `.aictx/config.json`:
+```json
+{ "auto_cleanup": true, "decision_keep_days": 90, "transcript_keep_days": 30 }
+```
+
 ---
 
 ## Phase 2: Lazy Loading + Caching

@@ -55,6 +55,26 @@ migrate_3_to_4(){
   fi
 }
 
+migrate_4_to_5(){
+  if [[ -f "$AICTX_DIR/config.json" ]] && ! grep -q '"auto_cleanup"' "$AICTX_DIR/config.json"; then
+    tmp="$(ai_mktemp)"
+    if ! awk '
+      BEGIN{added=0}
+      /^\s*}\s*$/{ if(!added){ print "  ,\"auto_cleanup\": true"; print "  ,\"decision_keep_days\": 90"; print "  ,\"transcript_keep_days\": 30"; added=1 } }
+      {print}
+    ' "$AICTX_DIR/config.json" > "$tmp"; then
+      ai_log "warning: migration 4->5 awk failed"
+      rm -f "$tmp"
+      return 0
+    fi
+    if grep -q '"auto_cleanup"' "$tmp"; then
+      mv "$tmp" "$AICTX_DIR/config.json"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+}
+
 aictx_run_migrations(){
   local target="$1"
   local cur; cur="$(aictx_schema_get)"

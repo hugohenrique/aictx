@@ -26,14 +26,13 @@ Assume the role of a Senior Software Engineer, specialized in software architect
 - After acting, check: decision/limitation/recurring issue/constraint change; update memory if triggered.
 
 ## Context Contract
-Before answering anything, you MUST read:
-1) .aictx/DIGEST.md
-2) .aictx/CONTEXT.md
-3) .aictx/DECISIONS.md
-4) .aictx/TODO.md
-5) The most recent file in .aictx/sessions/
+If aictx runs in paths mode, follow the header it generates:
+- Always read PROMPT.md and DIGEST.md first.
+- Read optional files only if they are listed.
+- Do not read older sessions unless explicitly listed.
+If aictx runs in inline mode, the full content is already embedded.
 
-Treat these files as the single source of truth.
+Treat the provided context files as the single source of truth.
 
 ## Update Rules
 - DIGEST.md: fixed sections only (Snapshot/Active Focus/Recent Decisions/Known Issues / Gotchas/Constraints); keep <= ~60 lines; bullets; no fluff.
