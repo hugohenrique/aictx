@@ -23,8 +23,8 @@ source "${AICTX_HOME}/lib/engines/gemini.sh"
 
 aictx_status(){
   aictx_paths_init
-  if [[ ! -d "$AICTX_DIR" && ! -d "$AICTX_LEGACY_DIR" ]]; then
-    ai_die "no .aictx/ (or legacy .codex-context/) found in this project. Run: aictx init"
+  if [[ ! -d "$AICTX_DIR" ]]; then
+    ai_die "no .aictx/ found in this project. Run: aictx init"
   fi
   echo "root:         $AICTX_ROOT"
   echo "context:      $AICTX_DIR"

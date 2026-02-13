@@ -25,7 +25,7 @@ aictx_usage(){
 aictx — per-project AI context runner (Codex + Claude + Gemini) with token-optimized context
 
 Commands:
-  init                 bootstrap .aictx/, migrate legacy .codex-context/
+  init                 bootstrap .aictx/
   run                  run interactive session (codex/claude/gemini)
   finalize             finalize latest (or specified) transcript/session
   watch                background worker to finalize pending items

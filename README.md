@@ -90,5 +90,5 @@ On macOS, you can run it as a LaunchAgent:
 aictx install-launchd
 ```
 
-## Legacy migration
-If a project contains `.codex-context/`, `aictx init` migrates it into `.aictx/` and moves the legacy folder to a timestamped backup.
+## Context directory
+`aictx` uses only `.aictx/` as the project context directory.

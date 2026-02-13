@@ -4,12 +4,10 @@ set -euo pipefail
 source "${AICTX_HOME}/lib/core.sh"
 
 AICTX_DIR_NAME=".aictx"
-AICTX_LEGACY_DIR_NAME=".codex-context"
 
 aictx_paths_init(){
   export AICTX_ROOT; AICTX_ROOT="$(ai_project_root)"
   export AICTX_DIR; AICTX_DIR="$AICTX_ROOT/$AICTX_DIR_NAME"
-  export AICTX_LEGACY_DIR; AICTX_LEGACY_DIR="$AICTX_ROOT/$AICTX_LEGACY_DIR_NAME"
   export AICTX_SESS_DIR; AICTX_SESS_DIR="$AICTX_DIR/sessions"
   export AICTX_TRS_DIR; AICTX_TRS_DIR="$AICTX_DIR/transcripts"
   export AICTX_PENDING_DIR; AICTX_PENDING_DIR="$AICTX_DIR/pending"

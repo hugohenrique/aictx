@@ -117,35 +117,8 @@ aictx_gitignore_setup(){
   aictx_ensure_line_once ".aictx/pending/" "$AICTX_GITIGNORE"
 }
 
-aictx_migrate_legacy_if_present(){
-  [[ -d "$AICTX_DIR" ]] || mkdir -p "$AICTX_DIR"
-
-  if [[ -d "$AICTX_LEGACY_DIR" && ! -d "$AICTX_SESS_DIR" ]]; then
-    local bak="$AICTX_ROOT/.codex-context.bak-$(date +"%Y%m%d_%H%M%S")"
-    ai_log "legacy found: $AICTX_LEGACY_DIR"
-    ai_log "migrating to:  $AICTX_DIR"
-
-    mkdir -p "$AICTX_DIR"
-    for f in PROMPT.md CONTEXT.md DECISIONS.md TODO.md; do
-      [[ -f "$AICTX_DIR/$f" ]] || [[ ! -f "$AICTX_LEGACY_DIR/$f" ]] || cp "$AICTX_LEGACY_DIR/$f" "$AICTX_DIR/$f"
-    done
-    if [[ -d "$AICTX_LEGACY_DIR/sessions" ]]; then
-      mkdir -p "$AICTX_SESS_DIR"
-      cp -n "$AICTX_LEGACY_DIR/sessions/"*.md "$AICTX_SESS_DIR/" 2>/dev/null || ai_log "warning: some session files may not have copied"
-    fi
-    if [[ -d "$AICTX_LEGACY_DIR/transcripts" ]]; then
-      mkdir -p "$AICTX_TRS_DIR"
-      cp -n "$AICTX_LEGACY_DIR/transcripts/"*.log "$AICTX_TRS_DIR/" 2>/dev/null || ai_log "warning: some transcript files may not have copied"
-    fi
-
-    mv "$AICTX_LEGACY_DIR" "$bak"
-    ai_log "legacy moved to backup: $bak"
-  fi
-}
-
 aictx_bootstrap(){
   aictx_paths_init
-  aictx_migrate_legacy_if_present
   aictx_init_templates
   aictx_init_project_skill
   aictx_init_agents_md
