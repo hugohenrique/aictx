@@ -6,7 +6,19 @@ Prefer a practical day-to-day flow first? See [UX.md](UX.md).
 
 ## One-minute start
 
-Install:
+Install (script):
+
+```bash
+bash install.sh
+```
+
+Or from a release tag:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/install.sh | bash -s -- --version vX.Y.Z --repo <you>/<repo>
+```
+
+Install (manual):
 
 ```bash
 git clone https://github.com/<you>/aictx ~/.aictx-tool
