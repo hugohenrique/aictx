@@ -23,6 +23,8 @@ source "${AICTX_HOME}/lib/cleanup.sh"
 source "${AICTX_HOME}/lib/review.sh"
 # shellcheck source=./swarm.sh
 source "${AICTX_HOME}/lib/swarm.sh"
+# shellcheck source=./metrics.sh
+source "${AICTX_HOME}/lib/metrics.sh"
 
 GLOBAL_NS_HINT="  --ns <name>     target namespace (sessions/transcripts/pending under .aictx/namespaces/<name>)"
 
@@ -41,11 +43,13 @@ Commands:
   install-launchd      install macOS LaunchAgent for background watch
   review               generate a read-only architecture/code quality report
   swarm                run swarm pipeline (implementation + review + optional fix)
+  stats                estimate prompt chars/tokens and compare with previous run
 
 Flags (run/finalize):
   -e, --engine  auto|codex|claude|gemini
   -m, --model   override model for selected engine
   --no-finalize do not auto-finalize on exit (still creates pending for watcher)
+  --dry-run     run only prompt/token analysis (no engine execution)
 
 Global:
 ${GLOBAL_NS_HINT}
@@ -98,23 +102,26 @@ aictx_main(){
   local cmd_args=()
   if [[ ${#filtered[@]} -gt 0 ]]; then
     cmd="${filtered[0]}"
-    cmd_args=("${filtered[@]:1}")
+    if [[ ${#filtered[@]} -gt 1 ]]; then
+      cmd_args=("${filtered[@]:1}")
+    fi
   else
     cmd="run"
   fi
 
   case "$cmd" in
     -h|--help|help) aictx_usage ;;
-    init) aictx_init "${cmd_args[@]}" ;;
-    run) aictx_run "${cmd_args[@]}" ;;
-    finalize) aictx_finalize_cmd "${cmd_args[@]}" ;;
-    watch) aictx_watch "${cmd_args[@]}" ;;
-    cleanup) aictx_cleanup_all "${cmd_args[@]}" ;;
-    status) aictx_status "${cmd_args[@]}" ;;
-    doctor) aictx_doctor "${cmd_args[@]}" ;;
-    install-launchd) aictx_install_launchd "${cmd_args[@]}" ;;
-    review) aictx_review "${cmd_args[@]}" ;;
-    swarm) aictx_swarm "${cmd_args[@]}" ;;
+    init) aictx_init ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    run) aictx_run ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    finalize) aictx_finalize_cmd ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    watch) aictx_watch ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    cleanup) aictx_cleanup_all ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    status) aictx_status ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    doctor) aictx_doctor ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    stats) aictx_stats ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    install-launchd) aictx_install_launchd ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    review) aictx_review ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    swarm) aictx_swarm ${cmd_args[@]+"${cmd_args[@]}"} ;;
     *) aictx_usage; ai_die "unknown command: $cmd" ;;
   esac
 }

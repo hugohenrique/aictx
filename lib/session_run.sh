@@ -22,6 +22,8 @@ source "${AICTX_HOME}/lib/engines/codex.sh"
 source "${AICTX_HOME}/lib/engines/claude.sh"
 # shellcheck source=./engines/gemini.sh
 source "${AICTX_HOME}/lib/engines/gemini.sh"
+# shellcheck source=./metrics.sh
+source "${AICTX_HOME}/lib/metrics.sh"
 
 aictx_status(){
   aictx_paths_init
@@ -73,21 +75,32 @@ aictx_install_finalize_trap(){
 }
 
 aictx_run(){
-  aictx_bootstrap
-  aictx_load_config
-  if [[ "${AICTX_AUTO_CLEANUP}" == "true" ]]; then
-    aictx_cleanup_all
-  fi
-
-  local engine="$AICTX_ENGINE" model_override="" no_finalize="0" engine_explicit="0"
+  local engine="auto" model_override="" no_finalize="0" engine_explicit="0" dry_run="0"
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -e|--engine) engine="${2:-}"; engine_explicit="1"; shift 2;;
       -m|--model) model_override="${2:-}"; shift 2;;
       --no-finalize) no_finalize="1"; shift 1;;
+      --dry-run) dry_run="1"; shift 1;;
       *) ai_die "unknown arg: $1" ;;
     esac
   done
+
+  if [[ "$dry_run" == "1" ]]; then
+    aictx_paths_init
+    [[ -d "$AICTX_DIR" ]] || ai_die "no .aictx/ found in this project. Run: aictx init"
+    aictx_load_config
+  else
+    aictx_bootstrap
+    aictx_load_config
+    if [[ "${AICTX_AUTO_CLEANUP}" == "true" ]]; then
+      aictx_cleanup_all
+    fi
+  fi
+
+  if [[ "$engine" == "auto" ]]; then
+    engine="$AICTX_ENGINE"
+  fi
 
   local inferred_from_model="0"
   if [[ -n "$model_override" && "$engine_explicit" == "0" ]]; then
@@ -109,9 +122,37 @@ aictx_run(){
     model="$(aictx_model_for_engine "$eng")"
   fi
 
+  if [[ "$dry_run" == "1" ]]; then
+    local predicted session_file prev_session
+    predicted="$(aictx_metrics_predict_session_context)"
+    IFS='|' read -r session_file prev_session <<< "$predicted"
+    [[ "$session_file" == "__NONE__" ]] && session_file=""
+    [[ "$prev_session" == "__NONE__" ]] && prev_session=""
+    [[ "$session_file" == "__NEW__" ]] && session_file=""
+
+    local dry_rows dry_total_chars dry_tokens_est
+    dry_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session_file" "$prev_session")"
+    dry_total_chars="$(aictx_metrics_sum_chars "$dry_rows")"
+    dry_tokens_est="$(aictx_metrics_tokens_est "$dry_total_chars")"
+
+    echo "DRY RUN: engine execution skipped."
+    echo "engine: $eng"
+    echo "model: $model"
+    aictx_metrics_print_report "$AICTX_PROMPT_MODE" "$dry_rows" "$dry_total_chars" "$dry_tokens_est"
+    aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$dry_tokens_est"
+    aictx_metrics_log_run "$eng" "$model" "$AICTX_PROMPT_MODE" "$dry_total_chars" "$dry_tokens_est"
+    return 0
+  fi
+
   local session prev prompt_file
   session="$(aictx_session_pick)"
   prev="$(ai_latest_file "$AICTX_SESS_DIR" "*.md")"
+
+  local run_rows run_total_chars run_tokens_est
+  run_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session" "$prev")"
+  run_total_chars="$(aictx_metrics_sum_chars "$run_rows")"
+  run_tokens_est="$(aictx_metrics_tokens_est "$run_total_chars")"
+  aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$run_tokens_est"
 
   prompt_file="$(aictx_build_prompt "$session" "$prev" "$AICTX_PROMPT_MODE")"
 
@@ -174,4 +215,6 @@ aictx_run(){
   else
     aictx_pending_mark_done "$pending" || ai_log "warning: failed to mark pending as done: $pending"
   fi
+
+  aictx_metrics_log_run "$final_engine" "$final_model" "$AICTX_PROMPT_MODE" "$run_total_chars" "$run_tokens_est"
 }

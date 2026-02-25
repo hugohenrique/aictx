@@ -11,5 +11,7 @@
   "transcript_keep_days": 30,
   "fallback_engine": "",
   "fallback_model": "",
-  "fallback_on_quota": false
+  "fallback_on_quota": false,
+  "token_budget_est": 2500,
+  "warn_budget_pct": 80
 }

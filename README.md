@@ -27,6 +27,8 @@ Auto-cleanup runs on `aictx run` by default. Configurable in `.aictx/config.json
 - `auto_cleanup`: enable/disable (default `true`)
 - `decision_keep_days`: archive decisions older than N days (default `90`)
 - `transcript_keep_days`: archive transcripts older than N days (default `30`)
+- `token_budget_est`: estimated token budget threshold (default `2500`)
+- `warn_budget_pct`: warn threshold percentage of budget (default `80`)
 
 If you want the previous (token-heavy) behavior, set:
 ```json
@@ -50,8 +52,10 @@ source ~/.zshrc
 ```bash
 aictx init
 aictx run                 # engine auto (prefers codex > claude > gemini if installed)
+aictx run --dry-run       # estimate prompt/token usage only (no engine call)
 aictx run --engine claude  # choose Claude
 aictx run --engine gemini  # choose Gemini
+aictx stats               # prompt/token metrics + previous-run delta
 ```
 
 `aictx init` also creates a project skill at `.aictx/skills/<project>-aictx/SKILL.md` for repo-specific guidance.

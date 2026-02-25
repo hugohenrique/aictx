@@ -16,6 +16,8 @@ AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT="30"
 AICTX_FALLBACK_ENGINE_DEFAULT=""
 AICTX_FALLBACK_MODEL_DEFAULT=""
 AICTX_FALLBACK_ON_QUOTA_DEFAULT="false"
+AICTX_TOKEN_BUDGET_EST_DEFAULT="2500"
+AICTX_WARN_BUDGET_PCT_DEFAULT="80"
 
 aictx_json_get(){
   local file="$1" key="$2" def="$3"
@@ -47,4 +49,6 @@ aictx_load_config(){
   export AICTX_FALLBACK_ENGINE="$fallback_engine_val"
   export AICTX_FALLBACK_MODEL; AICTX_FALLBACK_MODEL="$(aictx_json_get "$cfg" "fallback_model" "$AICTX_FALLBACK_MODEL_DEFAULT")"
   export AICTX_FALLBACK_ON_QUOTA; AICTX_FALLBACK_ON_QUOTA="$(aictx_json_get "$cfg" "fallback_on_quota" "$AICTX_FALLBACK_ON_QUOTA_DEFAULT")"
+  export AICTX_TOKEN_BUDGET_EST; AICTX_TOKEN_BUDGET_EST="$(aictx_json_get "$cfg" "token_budget_est" "$AICTX_TOKEN_BUDGET_EST_DEFAULT")"
+  export AICTX_WARN_BUDGET_PCT; AICTX_WARN_BUDGET_PCT="$(aictx_json_get "$cfg" "warn_budget_pct" "$AICTX_WARN_BUDGET_PCT_DEFAULT")"
 }
