@@ -8,67 +8,68 @@ source "${AICTX_HOME}/lib/fs.sh"
 source "${AICTX_HOME}/lib/config.sh"
 
 aictx_cleanup_old_sessions() {
-  local sessions_dir="${AICTX_DIR}/sessions"
-  local archive_dir="${AICTX_DIR}/archive"
-  local current_time=$(date +%s)
-  local seven_days=$((7 * 86400))
-  local thirty_days=$((30 * 86400))
-
-  [[ ! -d "$sessions_dir" ]] && return 0
-
-  # Create archive dir if needed
-  mkdir -p "$archive_dir"
-
-  # Count sessions (keep last 5 always)
-  local session_count=$(ls -1 "$sessions_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')
   local keep_recent=5
+  local sessions_dir
 
-  ai_log "Cleanup: found $session_count sessions"
+  for sessions_dir in $(ns_aictx_dirs "sessions"); do
+    [[ ! -d "$sessions_dir" ]] && continue
 
-  # Archive sessions >30 days old
-  find "$sessions_dir" -name "*.md" -type f -mtime +30 | while read -r session; do
-    local basename=$(basename "$session")
-    ai_log "Archiving old session: $basename"
-    mv "$session" "$archive_dir/" 2>/dev/null || true
-  done
+    local base_dir archive_dir session_count
+    base_dir="$(dirname "$sessions_dir")"
+    archive_dir="$base_dir/archive"
+    mkdir -p "$archive_dir"
 
-  # If still >5 sessions, keep only most recent 5
-  if [[ $session_count -gt $keep_recent ]]; then
-    ls -1t "$sessions_dir"/*.md 2>/dev/null | tail -n +$((keep_recent + 1)) | while read -r session; do
-      local basename=$(basename "$session")
-      ai_log "Archiving excess session: $basename"
+    session_count="$(ls -1 "$sessions_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')"
+    ai_log "Cleanup: found $session_count sessions in $sessions_dir"
+
+    find "$sessions_dir" -name "*.md" -type f -mtime +30 | while read -r session; do
+      local basename
+      basename="$(basename "$session")"
+      ai_log "Archiving old session: $basename"
       mv "$session" "$archive_dir/" 2>/dev/null || true
     done
-  fi
 
-  ai_log "Cleanup: sessions consolidated"
+    if [[ $session_count -gt $keep_recent ]]; then
+      ls -1t "$sessions_dir"/*.md 2>/dev/null | tail -n +$((keep_recent + 1)) | while read -r session; do
+        local basename
+        basename="$(basename "$session")"
+        ai_log "Archiving excess session: $basename"
+        mv "$session" "$archive_dir/" 2>/dev/null || true
+      done
+    fi
+  done
+
+  ai_log "Cleanup: sessions consolidated (default + namespaces)"
 }
 
 aictx_cleanup_pending() {
-  local pending_dir="${AICTX_DIR}/pending"
-  [[ ! -d "$pending_dir" ]] && return 0
+  local pending_dir
+  for pending_dir in $(ns_aictx_dirs "pending"); do
+    [[ ! -d "$pending_dir" ]] && continue
+    find "$pending_dir" -name "*.done.json" -type f -mtime +7 -delete 2>/dev/null || true
+    find "$pending_dir" -name "*.json" ! -name "*.done.json" -type f -mtime +3 -delete 2>/dev/null || true
+  done
 
-  # Remove .done.json files >7 days old
-  find "$pending_dir" -name "*.done.json" -type f -mtime +7 -delete 2>/dev/null || true
-
-  # Remove orphaned .json files >3 days old (likely failed sessions)
-  find "$pending_dir" -name "*.json" ! -name "*.done.json" -type f -mtime +3 -delete 2>/dev/null || true
-
-  ai_log "Cleanup: pending artifacts removed"
+  ai_log "Cleanup: pending artifacts removed (default + namespaces)"
 }
 
 aictx_cleanup_transcripts() {
-  local transcripts_dir="${AICTX_DIR}/transcripts"
-  [[ ! -d "$transcripts_dir" ]] && return 0
-
   local keep_days="${AICTX_TRANSCRIPT_KEEP_DAYS:-30}"
-  local archive_dir="${AICTX_DIR}/archive/transcripts"
-  mkdir -p "$archive_dir"
+  local transcripts_dir
 
-  find "$transcripts_dir" -name "*.log" -type f -mtime +"$keep_days" | while read -r log; do
-    local basename=$(basename "$log")
-    ai_log "Archiving old transcript: $basename"
-    mv "$log" "$archive_dir/" 2>/dev/null || true
+  for transcripts_dir in $(ns_aictx_dirs "transcripts"); do
+    [[ ! -d "$transcripts_dir" ]] && continue
+    local base_dir archive_dir
+    base_dir="$(dirname "$transcripts_dir")"
+    archive_dir="$base_dir/archive/transcripts"
+    mkdir -p "$archive_dir"
+
+    find "$transcripts_dir" -name "*.log" -type f -mtime +"$keep_days" | while read -r log; do
+      local basename
+      basename="$(basename "$log")"
+      ai_log "Archiving old transcript: $basename"
+      mv "$log" "$archive_dir/" 2>/dev/null || true
+    done
   done
 }
 

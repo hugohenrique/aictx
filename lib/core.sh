@@ -201,21 +201,6 @@ ai_latest_file(){
   ls -t "$dir"/$pattern 2>/dev/null | head -n 1 || true
 }
 
-ai_json_get(){
-  # Extract a single JSON field value from a file
-  # Usage: ai_json_get file.json "key" "default"
-  local file="$1" key="$2" default="${3:-}"
-
-  if ai_cmd jq; then
-    jq -r ".${key} // \"${default}\"" "$file" 2>/dev/null || echo "$default"
-  else
-    local line val
-    line="$(grep -E "\"$key\"[[:space:]]*:" "$file" | head -n 1 || true)"
-    val="$(echo "$line" | sed -E 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/' || true)"
-    echo "${val:-$default}"
-  fi
-}
-
 ai_json_get_multi(){
   # Extract multiple JSON fields efficiently (one file read)
   # Usage: ai_json_get_multi file.json "key1 key2 key3"

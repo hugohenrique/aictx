@@ -98,7 +98,7 @@ EOF
 }
 
 aictx_init_templates(){
-  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR"
+  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR" "$AICTX_DIR/reviews" "$AICTX_DIR/swarm"
 
   aictx_copy_if_missing "$AICTX_HOME/templates/PROMPT.md" "$AICTX_DIR/PROMPT.md"
   aictx_copy_if_missing "$AICTX_HOME/templates/CONTEXT.md" "$AICTX_DIR/CONTEXT.md"

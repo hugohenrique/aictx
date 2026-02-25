@@ -13,6 +13,9 @@ AICTX_PROMPT_MODE_DEFAULT="paths" # paths|inline
 AICTX_AUTO_CLEANUP_DEFAULT="true"
 AICTX_DECISION_KEEP_DAYS_DEFAULT="90"
 AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT="30"
+AICTX_FALLBACK_ENGINE_DEFAULT=""
+AICTX_FALLBACK_MODEL_DEFAULT=""
+AICTX_FALLBACK_ON_QUOTA_DEFAULT="false"
 
 aictx_json_get(){
   local file="$1" key="$2" def="$3"
@@ -38,4 +41,10 @@ aictx_load_config(){
   export AICTX_AUTO_CLEANUP; AICTX_AUTO_CLEANUP="$(aictx_json_get "$cfg" "auto_cleanup" "$AICTX_AUTO_CLEANUP_DEFAULT")"
   export AICTX_DECISION_KEEP_DAYS; AICTX_DECISION_KEEP_DAYS="$(aictx_json_get "$cfg" "decision_keep_days" "$AICTX_DECISION_KEEP_DAYS_DEFAULT")"
   export AICTX_TRANSCRIPT_KEEP_DAYS; AICTX_TRANSCRIPT_KEEP_DAYS="$(aictx_json_get "$cfg" "transcript_keep_days" "$AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT")"
+  local fallback_engine_val
+  fallback_engine_val="$(aictx_json_get "$cfg" "fallback_engine" "$AICTX_FALLBACK_ENGINE_DEFAULT")"
+  fallback_engine_val="$(echo "$fallback_engine_val" | tr '[:upper:]' '[:lower:]')"
+  export AICTX_FALLBACK_ENGINE="$fallback_engine_val"
+  export AICTX_FALLBACK_MODEL; AICTX_FALLBACK_MODEL="$(aictx_json_get "$cfg" "fallback_model" "$AICTX_FALLBACK_MODEL_DEFAULT")"
+  export AICTX_FALLBACK_ON_QUOTA; AICTX_FALLBACK_ON_QUOTA="$(aictx_json_get "$cfg" "fallback_on_quota" "$AICTX_FALLBACK_ON_QUOTA_DEFAULT")"
 }

@@ -14,6 +14,8 @@ source "${AICTX_HOME}/lib/prompt.sh"
 source "${AICTX_HOME}/lib/finalize.sh"
 # shellcheck source=./cleanup.sh
 source "${AICTX_HOME}/lib/cleanup.sh"
+# shellcheck source=./fallback.sh
+source "${AICTX_HOME}/lib/fallback.sh"
 # shellcheck source=./engines/codex.sh
 source "${AICTX_HOME}/lib/engines/codex.sh"
 # shellcheck source=./engines/claude.sh
@@ -35,6 +37,41 @@ aictx_status(){
   echo "pending:      $(ls "$AICTX_PENDING_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')"
 }
 
+aictx_model_for_engine(){
+  case "$1" in
+    codex) echo "$AICTX_CODEX_MODEL" ;;
+    claude) echo "$AICTX_CLAUDE_MODEL" ;;
+    gemini) echo "$AICTX_GEMINI_MODEL" ;;
+    *) echo "" ;;
+  esac
+}
+
+aictx_execute_engine(){
+  local engine="$1" model="$2" prompt_file="$3" transcript="$4"
+  case "$engine" in
+    codex)
+      ai_cmd codex || ai_die "codex not in PATH"
+      aictx_codex_run "$model" "$prompt_file" "$transcript"
+      ;;
+    claude)
+      ai_cmd claude || ai_die "claude not in PATH"
+      aictx_claude_run "$model" "$prompt_file" "$transcript"
+      ;;
+    gemini)
+      ai_cmd gemini || ai_die "gemini not in PATH"
+      aictx_gemini_run "$model" "$transcript"
+      ;;
+    *)
+      ai_die "unsupported engine: $engine"
+      ;;
+  esac
+}
+
+aictx_install_finalize_trap(){
+  local eng="$1" model="$2" session="$3" transcript="$4" pending="$5"
+  trap 'aictx_finalize_one "'"$eng"'" "'"$model"'" "'"$session"'" "'"$transcript"'" >/dev/null 2>&1; aictx_pending_mark_done "'"$pending"'"' EXIT HUP INT TERM
+}
+
 aictx_run(){
   aictx_bootstrap
   aictx_load_config
@@ -52,27 +89,24 @@ aictx_run(){
     esac
   done
 
-local inferred_from_model="0"
-if [[ -n "$model_override" && "$engine_explicit" == "0" ]]; then
-  local inferred_engine
-  inferred_engine="$(aictx_infer_engine_from_model "$model_override")"
-  if [[ "$inferred_engine" != "auto" ]]; then
-    engine="$inferred_engine"
-    inferred_from_model="1"
+  local inferred_from_model="0"
+  if [[ -n "$model_override" && "$engine_explicit" == "0" ]]; then
+    local inferred_engine
+    inferred_engine="$(aictx_infer_engine_from_model "$model_override")"
+    if [[ "$inferred_engine" != "auto" ]]; then
+      engine="$inferred_engine"
+      inferred_from_model="1"
+    fi
   fi
-fi
 
-local eng; eng="$(aictx_choose_engine "$engine")"
+  local eng; eng="$(aictx_choose_engine "$engine")"
 
   [[ "$eng" != "none" ]] || ai_die "no engine available (install codex or claude or gemini)"
 
   local model
   if [[ -n "$model_override" ]]; then model="$model_override"
   else
-    if [[ "$eng" == "codex" ]]; then model="$AICTX_CODEX_MODEL"
-    elif [[ "$eng" == "claude" ]]; then model="$AICTX_CLAUDE_MODEL"
-    else model="$AICTX_GEMINI_MODEL"
-    fi
+    model="$(aictx_model_for_engine "$eng")"
   fi
 
   local session prev prompt_file
@@ -85,34 +119,52 @@ local eng; eng="$(aictx_choose_engine "$engine")"
   ts="$(date +"%Y-%m-%d_%H-%M")"
   transcript="$AICTX_TRS_DIR/${eng}_$ts.log"
 
-  # Phase 3: snapshot DIGEST before run for delta-based finalize
   aictx_snapshot_digest
 
   local pending
   pending="$(aictx_pending_create "$eng" "$model" "$session" "$transcript")"
-if [[ "$inferred_from_model" == "1" ]]; then
-  ai_log "engine=$eng (inferred from --model=$model_override) model=$model prompt_mode=$AICTX_PROMPT_MODE"
-else
-  ai_log "engine=$eng model=$model prompt_mode=$AICTX_PROMPT_MODE"
-fi
+  if [[ "$inferred_from_model" == "1" ]]; then
+    ai_log "engine=$eng (inferred from --model=$model_override) model=$model prompt_mode=$AICTX_PROMPT_MODE"
+  else
+    ai_log "engine=$eng model=$model prompt_mode=$AICTX_PROMPT_MODE"
+  fi
 
   ai_log "session=$session"
   ai_log "transcript=$transcript"
   ai_log "pending=$pending"
 
+  local finalize_enabled="0"
   if [[ "$no_finalize" == "0" && "$AICTX_FINALIZE" == "true" ]]; then
-    trap 'aictx_finalize_one "'"$eng"'" "'"$model"'" "'"$session"'" "'"$transcript"'" >/dev/null 2>&1; aictx_pending_mark_done "'"$pending"'"' EXIT HUP INT TERM
+    finalize_enabled="1"
+    aictx_install_finalize_trap "$eng" "$model" "$session" "$transcript" "$pending"
   fi
 
-  if [[ "$eng" == "codex" ]]; then
-    ai_cmd codex || ai_die "codex not in PATH"
-    aictx_codex_run "$model" "$prompt_file" "$transcript"
-  elif [[ "$eng" == "claude" ]]; then
-    ai_cmd claude || ai_die "claude not in PATH"
-    aictx_claude_run "$model" "$prompt_file" "$transcript"
-  else
-    ai_cmd gemini || ai_die "gemini not in PATH"
-    aictx_gemini_run "$model" "$transcript"
+  local final_engine="$eng"
+  local final_model="$model"
+  local final_transcript="$transcript"
+
+  aictx_execute_engine "$final_engine" "$final_model" "$prompt_file" "$final_transcript"
+
+  if aictx_fallback_enabled && aictx_detect_quota_failure "$final_transcript"; then
+    local fallback_engine
+    fallback_engine="$(aictx_choose_engine "$AICTX_FALLBACK_ENGINE")"
+    if [[ "$fallback_engine" != "none" && "$fallback_engine" != "$final_engine" ]]; then
+      local fallback_model="${AICTX_FALLBACK_MODEL:-}"
+      [[ -z "$fallback_model" ]] && fallback_model="$(aictx_model_for_engine "$fallback_engine")"
+      local fallback_ts fallback_transcript
+      fallback_ts="$(date +"%Y-%m-%d_%H-%M-%S")"
+      fallback_transcript="$AICTX_TRS_DIR/${fallback_engine}_$fallback_ts.log"
+      ai_log "fallback triggered; rerunning with $fallback_engine/$fallback_model"
+      aictx_execute_engine "$fallback_engine" "$fallback_model" "$prompt_file" "$fallback_transcript"
+      final_engine="$fallback_engine"
+      final_model="$fallback_model"
+      final_transcript="$fallback_transcript"
+      aictx_pending_update_engine "$pending" "$final_engine" "$final_model" "$final_transcript" || ai_log "warning: fallback pending update failed: $pending"
+      if [[ "$finalize_enabled" == "1" ]]; then
+        aictx_install_finalize_trap "$final_engine" "$final_model" "$session" "$final_transcript" "$pending"
+      fi
+      ai_log "fallback complete; engine=$final_engine model=$final_model transcript=$final_transcript"
+    fi
   fi
 
   rm -f "$prompt_file" 2>/dev/null || true

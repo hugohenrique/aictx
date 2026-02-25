@@ -57,6 +57,18 @@ aictx run --engine gemini  # choose Gemini
 `aictx init` also creates a project skill at `.aictx/skills/<project>-aictx/SKILL.md` for repo-specific guidance.
 `aictx init` also appends an `aictx` section to `AGENTS.md` (or creates it) so Codex app follows the same context rules.
 
+`aictx review --engine claude --since main --paths src/` generates a read-only architecture/code-quality report saved under `.aictx/reviews/`.
+`aictx swarm --impl codex --review claude --fix` runs an agent swarm pipeline (implementation + review + optional fix) and emits a report under `.aictx/swarm/`.
+
+Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate sessions/transcripts/pending under `.aictx/namespaces/<name>/`.
+
+## Namespaces, fallbacks & agent modes
+
+- **Namespaces**: pass `--ns <name>` before the command to keep sessions, transcripts, and pending jobs scoped to `.aictx/namespaces/<name>/`, while shared memory files (`DIGEST.md`, `CONTEXT.md`, etc.) remain global.
+- **Fallback engines**: configure `fallback_engine`, `fallback_model`, and `fallback_on_quota` in `.aictx/config.json`. When a transcript contains 429/quota/rate-limit markers, `aictx run` reruns the request with the fallback engine/model and updates the pending metadata to keep finalize/watch in sync.
+- **Review mode**: `aictx review` (read-only) asks the configured engine to evaluate architecture, code quality, tests, and risks, storing structured reports under `.aictx/reviews/` without touching repository files.
+- **Swarm mode**: `aictx swarm` chains implementation + review passes (plus an optional fix pass) using the review prompts and saves the narrative report under `.aictx/swarm/`. Use `--fix` to generate remediation guidance based on the implementation and review outputs.
+
 ### Gemini CLI notes
 - `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.
 

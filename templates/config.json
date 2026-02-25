@@ -8,5 +8,8 @@
   "prompt_mode": "paths",
   "auto_cleanup": true,
   "decision_keep_days": 90,
-  "transcript_keep_days": 30
+  "transcript_keep_days": 30,
+  "fallback_engine": "",
+  "fallback_model": "",
+  "fallback_on_quota": false
 }
