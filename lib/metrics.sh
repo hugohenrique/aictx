@@ -19,6 +19,12 @@ aictx_metrics_chars(){
   wc -c < "$file" 2>/dev/null | tr -d ' ' || echo 0
 }
 
+aictx_metrics_nonempty_lines(){
+  local file="$1"
+  [[ -f "$file" ]] || { echo 0; return; }
+  grep -cve '^[[:space:]]*$' "$file" 2>/dev/null || echo 0
+}
+
 aictx_metrics_tokens_est(){
   local chars="${1:-0}"
   echo $(((chars + 3) / 4))
@@ -46,9 +52,37 @@ aictx_metrics_print_warnings(){
 
   if [[ "$tokens_est" -ge "$budget" ]]; then
     ai_log "strong warning: token estimate ($tokens_est) reached budget ($budget)."
-    ai_log "suggestions: reduce DIGEST, skip session include, run cleanup."
+    ai_log "suggestions: reduce DIGEST and avoid loading optional files unnecessarily."
+    ai_log "note: compact/cleanup runs automatically on 'aictx run' when auto_compact=true."
   elif [[ "$tokens_est" -ge "$warn_threshold" ]]; then
     ai_log "warning: token estimate ($tokens_est) reached warning threshold ($warn_threshold/$budget)."
+  fi
+}
+
+aictx_metrics_print_memory_hygiene(){
+  local digest_max="${AICTX_DIGEST_MAX_LINES:-60}"
+  local context_max="${AICTX_CONTEXT_MAX_LINES:-20}"
+  local decisions_max_chars="${AICTX_DECISIONS_MAX_CHARS:-5000}"
+  local todo_max_chars="${AICTX_TODO_MAX_CHARS:-1200}"
+
+  local digest_lines context_lines decisions_chars todo_chars
+  digest_lines="$(aictx_metrics_nonempty_lines "$AICTX_DIGEST_FILE")"
+  context_lines="$(aictx_metrics_nonempty_lines "$AICTX_DIR/CONTEXT.md")"
+  decisions_chars="$(aictx_metrics_chars "$AICTX_DIR/DECISIONS.md")"
+  todo_chars="$(aictx_metrics_chars "$AICTX_DIR/TODO.md")"
+
+  if [[ "$digest_lines" -gt "$digest_max" ]]; then
+    ai_log "memory warning: DIGEST.md has $digest_lines non-empty lines (target <= $digest_max)."
+  fi
+  if [[ "$context_lines" -gt "$context_max" ]]; then
+    ai_log "memory warning: CONTEXT.md has $context_lines non-empty lines (target <= $context_max)."
+  fi
+  if [[ "$decisions_chars" -gt "$decisions_max_chars" ]]; then
+    ai_log "memory warning: DECISIONS.md has $decisions_chars chars (target <= $decisions_max_chars)."
+    ai_log "hint: next 'aictx run' will compact this when auto_compact=true."
+  fi
+  if [[ "$todo_chars" -gt "$todo_max_chars" ]]; then
+    ai_log "memory warning: TODO.md has $todo_chars chars (target <= $todo_max_chars)."
   fi
 }
 
@@ -211,4 +245,5 @@ aictx_stats(){
 
   aictx_metrics_print_report "$AICTX_PROMPT_MODE" "$rows" "$total_chars" "$tokens_est"
   aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$tokens_est"
+  aictx_metrics_print_memory_hygiene
 }

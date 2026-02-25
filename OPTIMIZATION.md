@@ -40,13 +40,14 @@ This command:
 - Keeps only the 5 most recent sessions
 - Removes old pending artifacts (.done.json >7d, orphaned .json >3d)
 
-Auto-cleanup runs on `aictx run` by default and also:
+Auto-compaction runs on `aictx run` by default and also:
 - Archives transcripts older than `transcript_keep_days` (default 30)
-- Archives decisions older than `decision_keep_days` (default 90)
+- Archives decisions older than `decision_keep_days` (default 30)
+- Enforces `decisions_max_chars` cap by archiving oldest decision blocks when needed
 
 Configure in `.aictx/config.json`:
 ```json
-{ "auto_cleanup": true, "decision_keep_days": 90, "transcript_keep_days": 30 }
+{ "auto_compact": true, "auto_compact_ai": false, "decision_keep_days": 30, "transcript_keep_days": 30, "decisions_max_chars": 5000 }
 ```
 
 ---

@@ -60,7 +60,7 @@ migrate_4_to_5(){
     tmp="$(ai_mktemp)"
     if ! awk '
       BEGIN{added=0}
-      /^\s*}\s*$/{ if(!added){ print "  ,\"auto_cleanup\": true"; print "  ,\"decision_keep_days\": 90"; print "  ,\"transcript_keep_days\": 30"; added=1 } }
+      /^\s*}\s*$/{ if(!added){ print "  ,\"auto_cleanup\": true"; print "  ,\"decision_keep_days\": 30"; print "  ,\"transcript_keep_days\": 30"; print "  ,\"token_budget_est\": 2500"; print "  ,\"warn_budget_pct\": 80"; print "  ,\"digest_max_lines\": 60"; print "  ,\"context_max_lines\": 20"; print "  ,\"decisions_max_chars\": 5000"; print "  ,\"todo_max_chars\": 1200"; added=1 } }
       {print}
     ' "$AICTX_DIR/config.json" > "$tmp"; then
       ai_log "warning: migration 4->5 awk failed"
@@ -68,6 +68,25 @@ migrate_4_to_5(){
       return 0
     fi
     if grep -q '"auto_cleanup"' "$tmp"; then
+      mv "$tmp" "$AICTX_DIR/config.json"
+    else
+      rm -f "$tmp"
+    fi
+  fi
+
+  # Backward-compatible alias: introduce auto_compact keys if absent.
+  if [[ -f "$AICTX_DIR/config.json" ]] && ! grep -q '"auto_compact"' "$AICTX_DIR/config.json"; then
+    tmp="$(ai_mktemp)"
+    if ! awk '
+      BEGIN{added=0}
+      /^\s*}\s*$/{ if(!added){ print "  ,\"auto_compact\": true"; print "  ,\"auto_compact_ai\": false"; added=1 } }
+      {print}
+    ' "$AICTX_DIR/config.json" > "$tmp"; then
+      ai_log "warning: migration 4->5 awk failed (auto_compact)"
+      rm -f "$tmp"
+      return 0
+    fi
+    if grep -q '"auto_compact"' "$tmp"; then
       mv "$tmp" "$AICTX_DIR/config.json"
     else
       rm -f "$tmp"

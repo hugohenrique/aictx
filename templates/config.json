@@ -6,12 +6,18 @@
   "session_reuse_seconds": 7200,
   "finalize": true,
   "prompt_mode": "paths",
+  "auto_compact": true,
+  "auto_compact_ai": false,
   "auto_cleanup": true,
-  "decision_keep_days": 90,
+  "decision_keep_days": 30,
   "transcript_keep_days": 30,
   "fallback_engine": "",
   "fallback_model": "",
   "fallback_on_quota": false,
   "token_budget_est": 2500,
-  "warn_budget_pct": 80
+  "warn_budget_pct": 80,
+  "digest_max_lines": 60,
+  "context_max_lines": 20,
+  "decisions_max_chars": 5000,
+  "todo_max_chars": 1200
 }

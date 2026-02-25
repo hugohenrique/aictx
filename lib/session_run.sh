@@ -93,7 +93,7 @@ aictx_run(){
   else
     aictx_bootstrap
     aictx_load_config
-    if [[ "${AICTX_AUTO_CLEANUP}" == "true" ]]; then
+    if [[ "${AICTX_AUTO_COMPACT}" == "true" ]]; then
       aictx_cleanup_all
     fi
   fi
@@ -140,6 +140,7 @@ aictx_run(){
     echo "model: $model"
     aictx_metrics_print_report "$AICTX_PROMPT_MODE" "$dry_rows" "$dry_total_chars" "$dry_tokens_est"
     aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$dry_tokens_est"
+    aictx_metrics_print_memory_hygiene
     aictx_metrics_log_run "$eng" "$model" "$AICTX_PROMPT_MODE" "$dry_total_chars" "$dry_tokens_est"
     return 0
   fi
@@ -153,6 +154,7 @@ aictx_run(){
   run_total_chars="$(aictx_metrics_sum_chars "$run_rows")"
   run_tokens_est="$(aictx_metrics_tokens_est "$run_total_chars")"
   aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$run_tokens_est"
+  aictx_metrics_print_memory_hygiene
 
   prompt_file="$(aictx_build_prompt "$session" "$prev" "$AICTX_PROMPT_MODE")"
 

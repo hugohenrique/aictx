@@ -11,13 +11,19 @@ AICTX_SESSION_REUSE_SECONDS_DEFAULT=$((2*60*60))
 AICTX_FINALIZE_DEFAULT="true"
 AICTX_PROMPT_MODE_DEFAULT="paths" # paths|inline
 AICTX_AUTO_CLEANUP_DEFAULT="true"
-AICTX_DECISION_KEEP_DAYS_DEFAULT="90"
+AICTX_AUTO_COMPACT_DEFAULT="true"
+AICTX_AUTO_COMPACT_AI_DEFAULT="false"
+AICTX_DECISION_KEEP_DAYS_DEFAULT="30"
 AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT="30"
 AICTX_FALLBACK_ENGINE_DEFAULT=""
 AICTX_FALLBACK_MODEL_DEFAULT=""
 AICTX_FALLBACK_ON_QUOTA_DEFAULT="false"
 AICTX_TOKEN_BUDGET_EST_DEFAULT="2500"
 AICTX_WARN_BUDGET_PCT_DEFAULT="80"
+AICTX_DIGEST_MAX_LINES_DEFAULT="60"
+AICTX_CONTEXT_MAX_LINES_DEFAULT="20"
+AICTX_DECISIONS_MAX_CHARS_DEFAULT="5000"
+AICTX_TODO_MAX_CHARS_DEFAULT="1200"
 
 aictx_json_get(){
   local file="$1" key="$2" def="$3"
@@ -41,6 +47,9 @@ aictx_load_config(){
   export AICTX_FINALIZE; AICTX_FINALIZE="$(aictx_json_get "$cfg" "finalize" "$AICTX_FINALIZE_DEFAULT")"
   export AICTX_PROMPT_MODE; AICTX_PROMPT_MODE="$(aictx_json_get "$cfg" "prompt_mode" "$AICTX_PROMPT_MODE_DEFAULT")"
   export AICTX_AUTO_CLEANUP; AICTX_AUTO_CLEANUP="$(aictx_json_get "$cfg" "auto_cleanup" "$AICTX_AUTO_CLEANUP_DEFAULT")"
+  # Keep backward compatibility: if auto_compact is absent, inherit auto_cleanup behavior.
+  export AICTX_AUTO_COMPACT; AICTX_AUTO_COMPACT="$(aictx_json_get "$cfg" "auto_compact" "$AICTX_AUTO_CLEANUP")"
+  export AICTX_AUTO_COMPACT_AI; AICTX_AUTO_COMPACT_AI="$(aictx_json_get "$cfg" "auto_compact_ai" "$AICTX_AUTO_COMPACT_AI_DEFAULT")"
   export AICTX_DECISION_KEEP_DAYS; AICTX_DECISION_KEEP_DAYS="$(aictx_json_get "$cfg" "decision_keep_days" "$AICTX_DECISION_KEEP_DAYS_DEFAULT")"
   export AICTX_TRANSCRIPT_KEEP_DAYS; AICTX_TRANSCRIPT_KEEP_DAYS="$(aictx_json_get "$cfg" "transcript_keep_days" "$AICTX_TRANSCRIPT_KEEP_DAYS_DEFAULT")"
   local fallback_engine_val
@@ -51,4 +60,8 @@ aictx_load_config(){
   export AICTX_FALLBACK_ON_QUOTA; AICTX_FALLBACK_ON_QUOTA="$(aictx_json_get "$cfg" "fallback_on_quota" "$AICTX_FALLBACK_ON_QUOTA_DEFAULT")"
   export AICTX_TOKEN_BUDGET_EST; AICTX_TOKEN_BUDGET_EST="$(aictx_json_get "$cfg" "token_budget_est" "$AICTX_TOKEN_BUDGET_EST_DEFAULT")"
   export AICTX_WARN_BUDGET_PCT; AICTX_WARN_BUDGET_PCT="$(aictx_json_get "$cfg" "warn_budget_pct" "$AICTX_WARN_BUDGET_PCT_DEFAULT")"
+  export AICTX_DIGEST_MAX_LINES; AICTX_DIGEST_MAX_LINES="$(aictx_json_get "$cfg" "digest_max_lines" "$AICTX_DIGEST_MAX_LINES_DEFAULT")"
+  export AICTX_CONTEXT_MAX_LINES; AICTX_CONTEXT_MAX_LINES="$(aictx_json_get "$cfg" "context_max_lines" "$AICTX_CONTEXT_MAX_LINES_DEFAULT")"
+  export AICTX_DECISIONS_MAX_CHARS; AICTX_DECISIONS_MAX_CHARS="$(aictx_json_get "$cfg" "decisions_max_chars" "$AICTX_DECISIONS_MAX_CHARS_DEFAULT")"
+  export AICTX_TODO_MAX_CHARS; AICTX_TODO_MAX_CHARS="$(aictx_json_get "$cfg" "todo_max_chars" "$AICTX_TODO_MAX_CHARS_DEFAULT")"
 }

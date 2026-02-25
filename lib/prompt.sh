@@ -28,7 +28,7 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 text = path.read_text(errors="ignore")
-dates = re.findall(r"^##\\s+(\\d{4}-\\d{2}-\\d{2})\\s*$", text, flags=re.M)
+dates = re.findall(r"^##\s+(\d{4}-\d{2}-\d{2})\s*$", text, flags=re.M)
 if not dates:
     sys.exit(2)  # no parseable dates; fallback to line count
 

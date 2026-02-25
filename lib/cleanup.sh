@@ -79,11 +79,14 @@ aictx_cleanup_decisions() {
 
   command -v python3 >/dev/null 2>&1 || { ai_log "Python3 not found, skipping decisions cleanup"; return 0; }
 
-  local keep_days="${AICTX_DECISION_KEEP_DAYS:-90}"
+  local keep_days="${AICTX_DECISION_KEEP_DAYS:-30}"
+  local max_chars="${AICTX_DECISIONS_MAX_CHARS:-5000}"
   local archive_dir="${AICTX_DIR}/archive"
+  local before_chars after_chars
   mkdir -p "$archive_dir"
+  before_chars="$(wc -c < "$decisions_file" 2>/dev/null | tr -d ' ' || echo 0)"
 
-  python3 - "$decisions_file" "$archive_dir" "$keep_days" <<'PY'
+  python3 - "$decisions_file" "$archive_dir" "$keep_days" "$max_chars" <<'PY'
 import re
 import sys
 from datetime import date, timedelta
@@ -92,11 +95,12 @@ from pathlib import Path
 decisions_path = Path(sys.argv[1])
 archive_dir = Path(sys.argv[2])
 keep_days = int(sys.argv[3])
+max_chars = int(sys.argv[4])
 
 text = decisions_path.read_text(errors="ignore")
 lines = text.splitlines()
 
-date_re = re.compile(r"^##\\s+(\\d{4}-\\d{2}-\\d{2})\\s*$")
+date_re = re.compile(r"^##\s+(\d{4}-\d{2}-\d{2})\s*$")
 
 preamble = []
 blocks = []
@@ -136,9 +140,6 @@ for block in blocks:
     else:
         keep_blocks.append(block)
 
-if not archive_blocks:
-    sys.exit(0)
-
 def write_archive(month, blocks_to_archive):
     archive_path = archive_dir / f"DECISIONS_{month}.md"
     if archive_path.exists():
@@ -154,6 +155,28 @@ def write_archive(month, blocks_to_archive):
 for month, month_blocks in archive_blocks.items():
     write_archive(month, month_blocks)
 
+def render(preamble_lines, decision_blocks):
+    out = []
+    out.extend(preamble_lines)
+    if decision_blocks:
+        if out and out[-1].strip():
+            out.append("")
+        for b in decision_blocks:
+            out.extend(b["lines"])
+            out.append("")
+    return "\n".join(out).rstrip() + "\n"
+
+# Size cap: if decisions are still too large, keep removing oldest blocks.
+rendered = render(preamble, keep_blocks)
+if len(rendered) > max_chars and keep_blocks:
+    kept = list(keep_blocks)
+    while len(rendered) > max_chars and len(kept) > 1:
+        oldest = kept.pop(0)
+        month = oldest["date"][:7]
+        archive_blocks.setdefault(month, []).append(oldest)
+        rendered = render(preamble, kept)
+    keep_blocks = kept
+
 new_lines = []
 new_lines.extend(preamble)
 if keep_blocks:
@@ -165,6 +188,11 @@ if keep_blocks:
 
 decisions_path.write_text("\n".join(new_lines).rstrip() + "\n")
 PY
+
+  after_chars="$(wc -c < "$decisions_file" 2>/dev/null | tr -d ' ' || echo 0)"
+  if [[ "$after_chars" -lt "$before_chars" ]]; then
+    ai_log "Cleanup: DECISIONS.md compacted ($before_chars -> $after_chars chars; target <= $max_chars)"
+  fi
 }
 
 aictx_cleanup_all() {

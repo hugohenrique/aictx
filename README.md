@@ -2,33 +2,66 @@
 
 Per-project persistent AI context runner that supports **Codex CLI**, **Claude Code CLI**, and **Gemini CLI**.
 
-## Why token-optimized?
-By default, `aictx run` uses `prompt_mode=paths`:
-- The initial prompt is tiny (now 2 lines) and points the model to read local files.
-- The model reads `.aictx/DIGEST.md` first (compact working memory).
-- Detailed docs remain on disk (CONTEXT/DECISIONS/TODO/sessions) but are not inlined into the prompt.
-- Transcripts are sanitized (strip ANSI/control noise, collapse blank lines) before finalize to avoid wasting tokens on terminal noise.
+Prefer a practical day-to-day flow first? See [UX.md](UX.md).
 
-### Advanced Token Optimizations (Phase 1+2)
-aictx implements aggressive token optimization achieving **40-60% reduction**:
+## One-minute start
 
-- **Template minification**: Compressed prompts using semantic abbreviations
-- **Lazy file loading**: Skips empty TODO.md, old DECISIONS.md, stale sessions
-- **Context caching**: Hash-based caching for stable CONTEXT.md (24h validity)
-- **Session cleanup**: Auto-archive old sessions, keep last 5 recent
+Install:
 
-**Typical savings: 400-850 tokens per run**
+```bash
+git clone https://github.com/<you>/aictx ~/.aictx-tool
+mkdir -p ~/.local/bin
+ln -sf ~/.aictx-tool/bin/aictx ~/.local/bin/aictx
+grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
 
-See [OPTIMIZATION.md](OPTIMIZATION.md) for detailed guide and best practices.
+Use in a repo:
 
-Use `aictx cleanup` to manually trigger cleanup and optimization.
+```bash
+aictx init
+aictx run
+```
 
-Auto-cleanup runs on `aictx run` by default. Configurable in `.aictx/config.json`:
-- `auto_cleanup`: enable/disable (default `true`)
-- `decision_keep_days`: archive decisions older than N days (default `90`)
+Daily flow: keep using `aictx run` and let auto-compaction maintain context size.
+
+## Why this feels natural
+- `aictx run` is the default flow.
+- Context stays small automatically (deterministic compaction, no AI by default).
+- Project memory stays on disk and readable (`.aictx/*`), instead of hidden state.
+- Prompt stays minimal by default (`prompt_mode=paths`).
+
+## Default behavior (recommended)
+- `prompt_mode=paths`
+- `auto_compact=true`
+- `auto_compact_ai=false`
+
+This gives predictable, low-cost behavior with no extra commands.
+
+## Common commands
+
+```bash
+aictx run                      # main flow
+aictx run --dry-run            # estimate prompt/tokens only
+aictx run --engine claude      # force Claude
+aictx run --engine gemini      # force Gemini
+aictx stats                    # inspect prompt/token metrics
+aictx cleanup                  # manual maintenance (usually unnecessary)
+```
+
+## Configuration highlights
+Auto-compaction runs on `aictx run` by default (deterministic, no AI). Main options in `.aictx/config.json`:
+- `auto_compact`: enable/disable deterministic compaction on `run` (default `true`)
+- `auto_compact_ai`: AI summarization during compaction (default `false`)
+- `auto_cleanup`: legacy alias kept for backward compatibility
+- `decision_keep_days`: archive decisions older than N days (default `30`)
 - `transcript_keep_days`: archive transcripts older than N days (default `30`)
 - `token_budget_est`: estimated token budget threshold (default `2500`)
 - `warn_budget_pct`: warn threshold percentage of budget (default `80`)
+- `digest_max_lines`: DIGEST warning threshold (default `60`)
+- `context_max_lines`: CONTEXT warning threshold (default `20`)
+- `decisions_max_chars`: DECISIONS size cap for cleanup + warning (default `5000`)
+- `todo_max_chars`: TODO warning threshold (default `1200`)
 
 If you want the previous (token-heavy) behavior, set:
 ```json
@@ -36,27 +69,7 @@ If you want the previous (token-heavy) behavior, set:
 ```
 in `.aictx/config.json`.
 
-## Install (macOS)
-
-```bash
-git clone https://github.com/<you>/aictx ~/.aictx-tool
-mkdir -p ~/.local/bin
-ln -sf ~/.aictx-tool/bin/aictx ~/.local/bin/aictx
-
-grep -q 'export PATH="$HOME/.local/bin:$PATH"' ~/.zshrc || echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-```
-
-## Use (inside a project repo)
-
-```bash
-aictx init
-aictx run                 # engine auto (prefers codex > claude > gemini if installed)
-aictx run --dry-run       # estimate prompt/token usage only (no engine call)
-aictx run --engine claude  # choose Claude
-aictx run --engine gemini  # choose Gemini
-aictx stats               # prompt/token metrics + previous-run delta
-```
+See [OPTIMIZATION.md](OPTIMIZATION.md) for deeper internals and tuning.
 
 `aictx init` also creates a project skill at `.aictx/skills/<project>-aictx/SKILL.md` for repo-specific guidance.
 `aictx init` also appends an `aictx` section to `AGENTS.md` (or creates it) so Codex app follows the same context rules.
