@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" role="img" aria-labelledby="title desc">
+  <title id="title">aictx logo</title>
+  <desc id="desc">Rounded triangle outline with an internal crossed bar forming a stylized letter A.</desc>
+  <rect width="640" height="480" fill="white"/>
+  <path d="M320 86 L480 374 Q488 388 474 395 L166 395 Q152 388 160 374 L320 86 Z" fill="none" stroke="#0b0b0b" stroke-width="32" stroke-linejoin="round" stroke-linecap="round"/>
+  <line x1="240" y1="320" x2="400" y2="320" stroke="#0b0b0b" stroke-width="32" stroke-linecap="round"/>
+  <line x1="260" y1="360" x2="380" y2="260" stroke="#0b0b0b" stroke-width="32" stroke-linecap="round"/>
+</svg>

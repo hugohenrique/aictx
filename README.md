@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/aictx-logo.png" alt="aictx logo" width="220" />
+</p>
+
 # aictx (token-optimized)
 
 Per-project persistent AI context runner that supports **Codex CLI**, **Claude Code CLI**, and **Gemini CLI**.
