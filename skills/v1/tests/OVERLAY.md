@@ -1,0 +1,5 @@
+- Prioritize deterministic tests close to changed behavior.
+- Prefer narrow unit tests first, then integration tests for boundaries.
+- Avoid brittle snapshot-style assertions when stable invariants exist.
+- Include failure-path coverage for new logic.
+- Note residual test gaps explicitly if execution is blocked.

@@ -1,0 +1,4 @@
+- Define a minimal test matrix by change type (unit, integration, contract).
+- Cover success path, failure path, and boundary behavior.
+- Prefer deterministic assertions over snapshots when possible.
+- Leave explicit notes for residual testing gaps.

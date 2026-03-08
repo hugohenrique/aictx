@@ -1,0 +1,7 @@
+{
+  "id": "refactor-safe",
+  "name": "Safe Refactor",
+  "overlay_max_lines": 24,
+  "compatible_with": ["triage", "review", "tests"],
+  "incompatible_with": ["release"]
+}

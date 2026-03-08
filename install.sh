@@ -101,6 +101,7 @@ fi
 [[ -f "$src_root/bin/aictx" ]] || die "invalid source: missing bin/aictx at $src_root"
 [[ -d "$src_root/lib" ]] || die "invalid source: missing lib/ at $src_root"
 [[ -d "$src_root/templates" ]] || die "invalid source: missing templates/ at $src_root"
+[[ -d "$src_root/skills" ]] || die "invalid source: missing skills/ at $src_root"
 
 if [[ -d "$INSTALL_DIR" && "$UPGRADE" != "1" ]]; then
   die "installation exists at $INSTALL_DIR (re-run with --upgrade)"
@@ -108,10 +109,11 @@ fi
 
 log "installing to $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
-rm -rf "$INSTALL_DIR/bin" "$INSTALL_DIR/lib" "$INSTALL_DIR/templates"
+rm -rf "$INSTALL_DIR/bin" "$INSTALL_DIR/lib" "$INSTALL_DIR/templates" "$INSTALL_DIR/skills"
 cp -R "$src_root/bin" "$INSTALL_DIR/"
 cp -R "$src_root/lib" "$INSTALL_DIR/"
 cp -R "$src_root/templates" "$INSTALL_DIR/"
+cp -R "$src_root/skills" "$INSTALL_DIR/"
 [[ -f "$src_root/LICENSE" ]] && cp "$src_root/LICENSE" "$INSTALL_DIR/" || true
 [[ -f "$src_root/README.md" ]] && cp "$src_root/README.md" "$INSTALL_DIR/" || true
 [[ -f "$src_root/UX.md" ]] && cp "$src_root/UX.md" "$INSTALL_DIR/" || true

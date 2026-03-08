@@ -6,8 +6,8 @@ source "${AICTX_HOME}/lib/core.sh"
 source "${AICTX_HOME}/lib/fs.sh"
 # shellcheck source=./config.sh
 source "${AICTX_HOME}/lib/config.sh"
-# shellcheck source=./prompt.sh
-source "${AICTX_HOME}/lib/prompt.sh"
+# shellcheck source=./context_budget.sh
+source "${AICTX_HOME}/lib/context_budget.sh"
 
 aictx_metrics_file(){
   echo "$AICTX_DIR/metrics.jsonl"
@@ -110,40 +110,27 @@ aictx_metrics_collect_rows(){
   local rows=""
   local file chars
 
+  aictx_context_plan "$session_file" "$prev_session" "$mode"
+
   file="$AICTX_DIR/PROMPT.md"; chars="$(aictx_metrics_chars "$file")"
   rows+="referenced|PROMPT.md|$file|$chars"$'\n'
 
   file="$AICTX_DIGEST_FILE"; chars="$(aictx_metrics_chars "$file")"
   rows+="referenced|DIGEST.md|$file|$chars"$'\n'
 
-  if [[ "$mode" == "inline" ]]; then
+  if [[ "$AICTX_PLAN_LOAD_CONTEXT" == "1" ]]; then
     file="$AICTX_DIR/CONTEXT.md"; chars="$(aictx_metrics_chars "$file")"
     rows+="included|CONTEXT.md|$file|$chars"$'\n'
+  fi
+  if [[ "$AICTX_PLAN_LOAD_DECISIONS" == "1" ]]; then
     file="$AICTX_DIR/DECISIONS.md"; chars="$(aictx_metrics_chars "$file")"
     rows+="included|DECISIONS.md|$file|$chars"$'\n'
+  fi
+  if [[ "$AICTX_PLAN_LOAD_TODO" == "1" ]]; then
     file="$AICTX_DIR/TODO.md"; chars="$(aictx_metrics_chars "$file")"
     rows+="included|TODO.md|$file|$chars"$'\n'
-    if [[ -n "$prev_session" && "$prev_session" != "$session_file" && -f "$prev_session" ]]; then
-      chars="$(aictx_metrics_chars "$prev_session")"
-      rows+="included|last_session|$prev_session|$chars"$'\n'
-    fi
-    echo "$rows"
-    return
   fi
-
-  if aictx_should_load_context; then
-    file="$AICTX_DIR/CONTEXT.md"; chars="$(aictx_metrics_chars "$file")"
-    rows+="referenced|CONTEXT.md|$file|$chars"$'\n'
-  fi
-  if aictx_should_load_decisions; then
-    file="$AICTX_DIR/DECISIONS.md"; chars="$(aictx_metrics_chars "$file")"
-    rows+="referenced|DECISIONS.md|$file|$chars"$'\n'
-  fi
-  if aictx_should_load_todo; then
-    file="$AICTX_DIR/TODO.md"; chars="$(aictx_metrics_chars "$file")"
-    rows+="referenced|TODO.md|$file|$chars"$'\n'
-  fi
-  if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]] && aictx_should_load_prev_session "$prev_session"; then
+  if [[ "$AICTX_PLAN_LOAD_PREV_SESSION" == "1" && -n "$prev_session" ]]; then
     chars="$(aictx_metrics_chars "$prev_session")"
     rows+="referenced|last_session|$prev_session|$chars"$'\n'
   fi
@@ -226,7 +213,30 @@ aictx_metrics_log_run(){
     "$ts" "$esc_engine" "$esc_model" "$esc_mode" "$chars_total" "$tokens_est" "$esc_ns" >> "$metrics_file"
 }
 
+aictx_prompt_plan(){
+  aictx_paths_init
+  [[ -d "$AICTX_DIR" ]] || ai_die "no .aictx/ found in this project. Run: aictx init"
+  aictx_load_config
+
+  local predicted session_file prev_session
+  predicted="$(aictx_metrics_predict_session_context)"
+  IFS='|' read -r session_file prev_session <<< "$predicted"
+  [[ "$session_file" == "__NONE__" ]] && session_file=""
+  [[ "$prev_session" == "__NONE__" ]] && prev_session=""
+  [[ "$session_file" == "__NEW__" ]] && session_file=""
+
+  aictx_context_plan "$session_file" "$prev_session" "$AICTX_PROMPT_MODE"
+  aictx_context_plan "$session_file" "$prev_session" "$AICTX_PROMPT_MODE" "print"
+}
+
 aictx_stats(){
+  local explain="0"
+  if [[ "${1:-}" == "--explain" ]]; then
+    explain="1"
+    shift
+  fi
+  [[ $# -eq 0 ]] || ai_die "unknown arg for stats: $1 (use: aictx stats [--explain])"
+
   aictx_paths_init
   [[ -d "$AICTX_DIR" ]] || ai_die "no .aictx/ found in this project. Run: aictx init"
   aictx_load_config
@@ -244,6 +254,10 @@ aictx_stats(){
   tokens_est="$(aictx_metrics_tokens_est "$total_chars")"
 
   aictx_metrics_print_report "$AICTX_PROMPT_MODE" "$rows" "$total_chars" "$tokens_est"
+  if [[ "$explain" == "1" ]]; then
+    aictx_context_plan "$session_file" "$prev_session" "$AICTX_PROMPT_MODE"
+    aictx_context_explain
+  fi
   aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$tokens_est"
   aictx_metrics_print_memory_hygiene
 }

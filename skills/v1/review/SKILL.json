@@ -1,0 +1,7 @@
+{
+  "id": "review",
+  "name": "Code Review",
+  "overlay_max_lines": 28,
+  "compatible_with": ["impl", "tests", "refactor-safe"],
+  "incompatible_with": ["release"]
+}

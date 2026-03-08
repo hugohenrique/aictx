@@ -1,0 +1,4 @@
+- Require rollout plan, rollback plan, and observability checks.
+- Call out migration and compatibility impact before deployment.
+- Minimize risky scope in release-critical paths.
+- Block release on unresolved high-severity uncertainty.

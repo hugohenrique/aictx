@@ -1,0 +1,5 @@
+- Implement the smallest reversible change that satisfies user intent.
+- Preserve backward compatibility unless the user explicitly requests breakage.
+- Prefer explicit and testable designs over clever shortcuts.
+- Add or update tests when behavior changes.
+- Call out risks and trade-offs when uncertainty remains.

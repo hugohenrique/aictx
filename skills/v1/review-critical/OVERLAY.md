@@ -1,0 +1,4 @@
+- Output findings first, ordered by severity.
+- Focus on bugs, regressions, security risks, and missing tests.
+- Provide concrete file references for each finding.
+- Separate confirmed defects from assumptions or open questions.

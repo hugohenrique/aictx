@@ -25,8 +25,28 @@ source "${AICTX_HOME}/lib/review.sh"
 source "${AICTX_HOME}/lib/swarm.sh"
 # shellcheck source=./metrics.sh
 source "${AICTX_HOME}/lib/metrics.sh"
+# shellcheck source=./validate.sh
+source "${AICTX_HOME}/lib/validate.sh"
+# shellcheck source=./sync.sh
+source "${AICTX_HOME}/lib/sync.sh"
 
 GLOBAL_NS_HINT="  --ns <name>     target namespace (sessions/transcripts/pending under .aictx/namespaces/<name>)"
+
+aictx_help_command(){
+  local topic="${1:-}"
+  case "$topic" in
+    ""|all|global) aictx_usage ;;
+    run) aictx_run_usage ;;
+    review) aictx_review_usage ;;
+    swarm) aictx_swarm_usage ;;
+    finalize) aictx_finalize_usage ;;
+    validate) echo "Usage: aictx validate [--strict]" ;;
+    *)
+      aictx_usage
+      ai_die "unknown help topic: $topic"
+      ;;
+  esac
+}
 
 aictx_usage(){
   cat <<EOF
@@ -43,16 +63,37 @@ Commands:
   install-launchd      install macOS LaunchAgent for background watch
   review               generate a read-only architecture/code quality report
   swarm                run swarm pipeline (implementation + review + optional fix)
-  stats                estimate prompt chars/tokens and compare with previous run
+  validate             validate .aictx structure and limits
+  sync                 sync local-first adapters (AGENTS/GEMINI/skills)
+  prompt-plan          print current context layer plan
+  stats                estimate prompt chars/tokens and compare with previous run (use --explain)
 
-Flags (run/finalize):
+Global flags:
+${GLOBAL_NS_HINT}
+
+Run flags:
   -e, --engine  auto|codex|claude|gemini
   -m, --model   override model for selected engine
   --no-finalize do not auto-finalize on exit (still creates pending for watcher)
   --dry-run     run only prompt/token analysis (no engine execution)
 
-Global:
-${GLOBAL_NS_HINT}
+Skills flags (run/review/swarm):
+  --intent      hint skill intent (impl|review|tests|release|refactor|debug|finalize|compact)
+  --skill       activate one skill id
+  --skills      activate comma-separated skill ids
+  --no-skill    disable skill overlays for this run
+
+Review flags:
+  --engine      choose engine for the review pass
+  --since       compare from git ref
+  --paths       restrict analysis paths (space-separated)
+
+Swarm flags:
+  --impl        implementation pass engine (default: codex)
+  --review      review pass engine (default: claude)
+  --fix         add fix-planning pass
+  --since       compare from git ref
+  --paths       restrict analysis paths (space-separated)
 
 Token optimization:
   - Default prompt_mode is "paths" (minimal prompt that points to files).
@@ -66,11 +107,23 @@ Model-based routing (when --engine not set):
 Examples:
   aictx init
   aictx run
+  aictx run --intent review
+  aictx run --skills impl,review
+  aictx run --no-skill
   aictx run --engine claude --model opus
-  aictx run --engine gemini --model auto
+  aictx review --engine claude --since main --paths src/
+  aictx swarm --impl codex --review claude --fix
+  aictx validate --strict
+  aictx sync
+  aictx prompt-plan
+  aictx stats --explain
   aictx finalize
   aictx watch
   aictx status
+
+Help:
+  aictx help run
+  aictx run --help
 EOF
 }
 
@@ -110,7 +163,8 @@ aictx_main(){
   fi
 
   case "$cmd" in
-    -h|--help|help) aictx_usage ;;
+    -h|--help) aictx_usage ;;
+    help) aictx_help_command "${cmd_args[0]:-}" ;;
     init) aictx_init ${cmd_args[@]+"${cmd_args[@]}"} ;;
     run) aictx_run ${cmd_args[@]+"${cmd_args[@]}"} ;;
     finalize) aictx_finalize_cmd ${cmd_args[@]+"${cmd_args[@]}"} ;;
@@ -119,6 +173,9 @@ aictx_main(){
     status) aictx_status ${cmd_args[@]+"${cmd_args[@]}"} ;;
     doctor) aictx_doctor ${cmd_args[@]+"${cmd_args[@]}"} ;;
     stats) aictx_stats ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    prompt-plan) aictx_prompt_plan ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    validate) aictx_validate ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    sync) aictx_sync ${cmd_args[@]+"${cmd_args[@]}"} ;;
     install-launchd) aictx_install_launchd ${cmd_args[@]+"${cmd_args[@]}"} ;;
     review) aictx_review ${cmd_args[@]+"${cmd_args[@]}"} ;;
     swarm) aictx_swarm ${cmd_args[@]+"${cmd_args[@]}"} ;;

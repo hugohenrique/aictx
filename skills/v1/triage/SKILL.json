@@ -1,0 +1,7 @@
+{
+  "id": "triage",
+  "name": "Intent Triage",
+  "overlay_max_lines": 18,
+  "compatible_with": [],
+  "incompatible_with": []
+}

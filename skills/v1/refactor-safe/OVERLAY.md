@@ -1,0 +1,5 @@
+- Keep behavior identical while improving structure and readability.
+- Prefer mechanical, reviewable edits over broad rewrites.
+- Maintain stable interfaces and call sites unless explicitly requested.
+- Add characterization tests when behavior is unclear.
+- Stage refactors into small commits or checkpoints.

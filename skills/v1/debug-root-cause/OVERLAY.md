@@ -1,0 +1,4 @@
+- Reproduce first, then isolate, then fix.
+- Prioritize root cause evidence over symptom patches.
+- Validate hypotheses with direct signals (logs, diffs, tests).
+- Include at least one regression guard before concluding.

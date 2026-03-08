@@ -1,0 +1,7 @@
+{
+  "id": "memory-hygiene",
+  "name": "Memory Hygiene",
+  "overlay_max_lines": 20,
+  "compatible_with": [],
+  "incompatible_with": []
+}

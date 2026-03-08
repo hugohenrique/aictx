@@ -1,0 +1,7 @@
+{
+  "id": "review-critical",
+  "name": "Critical Review",
+  "overlay_max_lines": 24,
+  "compatible_with": [],
+  "incompatible_with": ["release"]
+}

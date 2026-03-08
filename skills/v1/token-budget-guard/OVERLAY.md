@@ -1,0 +1,4 @@
+- Favor paths-based context and include optional files only when needed.
+- Avoid redundant restatements of already referenced material.
+- Keep prompts focused on current objective and constraints.
+- Prefer concise diffs and targeted validations.

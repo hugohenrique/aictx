@@ -1,0 +1,7 @@
+{
+  "id": "debug-root-cause",
+  "name": "Root Cause Debug",
+  "overlay_max_lines": 24,
+  "compatible_with": [],
+  "incompatible_with": ["release"]
+}

@@ -1,0 +1,4 @@
+- Persist only information expensive to rediscover.
+- Keep DIGEST concise, stable, and decision-oriented.
+- Keep CONTEXT factual and durable; avoid session history.
+- Keep TODO actionable and current.

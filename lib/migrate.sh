@@ -2,6 +2,8 @@
 set -euo pipefail
 # shellcheck source=./core.sh
 source "${AICTX_HOME}/lib/core.sh"
+# shellcheck source=./template.sh
+source "${AICTX_HOME}/lib/template.sh"
 
 aictx_schema_get(){
   [[ -f "$AICTX_SCHEMA_FILE" ]] && cat "$AICTX_SCHEMA_FILE" || echo "1"
@@ -10,11 +12,11 @@ aictx_schema_set(){ echo "$1" > "$AICTX_SCHEMA_FILE"; }
 
 migrate_1_to_2(){
   mkdir -p "$AICTX_PENDING_DIR" "$AICTX_TRS_DIR"
-  [[ -f "$AICTX_DIR/config.json" ]] || cp "$AICTX_HOME/templates/config.json" "$AICTX_DIR/config.json"
+  [[ -f "$AICTX_DIR/config.json" ]] || cp "$(aictx_template_path "config" "config.json")" "$AICTX_DIR/config.json"
 }
 
 migrate_2_to_3(){
-  [[ -f "$AICTX_DIGEST_FILE" ]] || cp "$AICTX_HOME/templates/DIGEST.md" "$AICTX_DIGEST_FILE"
+  [[ -f "$AICTX_DIGEST_FILE" ]] || cp "$(aictx_template_path "context" "DIGEST.md")" "$AICTX_DIGEST_FILE"
 
   if [[ -f "$AICTX_DIR/config.json" ]] && ! grep -q '"prompt_mode"' "$AICTX_DIR/config.json"; then
     tmp="$(ai_mktemp)"

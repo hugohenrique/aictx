@@ -4,6 +4,8 @@ set -euo pipefail
 source "${AICTX_HOME}/lib/core.sh"
 # shellcheck source=./fs.sh
 source "${AICTX_HOME}/lib/fs.sh"
+# shellcheck source=./skill_runtime.sh
+source "${AICTX_HOME}/lib/skill_runtime.sh"
 
 aictx_doctor(){
   aictx_paths_init
@@ -17,4 +19,9 @@ aictx_doctor(){
   echo "script:       $(command -v script >/dev/null 2>&1 && echo yes || echo no)"
   echo "realpath:     $(command -v realpath >/dev/null 2>&1 && echo yes || echo no)"
   echo "python3:      $(command -v python3 >/dev/null 2>&1 && echo yes || echo no)"
+  if aictx_skills_lint; then
+    echo "skills lint:  ok"
+  else
+    echo "skills lint:  failed"
+  fi
 }

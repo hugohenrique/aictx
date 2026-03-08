@@ -1,0 +1,5 @@
+- Operate in code-review mode: findings first, ordered by severity.
+- Focus on bugs, regressions, security risks, and missing test coverage.
+- Include concrete file references for each finding.
+- Separate confirmed defects from assumptions and open questions.
+- Keep summaries brief and secondary to findings.

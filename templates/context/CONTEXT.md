@@ -1,0 +1,5 @@
+- Project: (fill me)
+- Goal: (fill me)
+- Stack: (fill me)
+- Key constraints: (fill me)
+- Current focus: (fill me)

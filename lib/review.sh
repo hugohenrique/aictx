@@ -4,46 +4,27 @@ set -euo pipefail
 source "${AICTX_HOME}/lib/core.sh"
 # shellcheck source=./fs.sh
 source "${AICTX_HOME}/lib/fs.sh"
-# shellcheck source=./bootstrap.sh
-source "${AICTX_HOME}/lib/bootstrap.sh"
-# shellcheck source=./config.sh
-source "${AICTX_HOME}/lib/config.sh"
+# shellcheck source=./skill_runtime.sh
+source "${AICTX_HOME}/lib/skill_runtime.sh"
+# shellcheck source=./template.sh
+source "${AICTX_HOME}/lib/template.sh"
+# shellcheck source=./runtime.sh
+source "${AICTX_HOME}/lib/runtime.sh"
 
-aictx_template_fill(){
-  local template="$1"
-  local output="$2"
-  shift 2
-  local env_args=()
-  for kv in "$@"; do
-    local key="${kv%%=*}"
-    local value="${kv#*=}"
-    env_args+=("__TMPL_${key}=${value}")
-  done
-  env_args+=("__AICTX_ROOT=$AICTX_ROOT")
-  env_args+=("__AICTX_CONTEXT=$(cat "$AICTX_DIR/CONTEXT.md" 2>/dev/null || true)")
+aictx_review_usage(){
+  cat <<EOF
+Usage: aictx review [options]
 
-  if command -v python3 >/dev/null 2>&1; then
-    env "${env_args[@]}" python3 - "$template" "$output" <<'PY'
-import os, sys
-from pathlib import Path
-
-template = Path(sys.argv[1]).read_text()
-replacements = {k[7:]: v for k, v in os.environ.items() if k.startswith("__TMPL_")}
-replacements["ROOT"] = os.environ.get("__AICTX_ROOT", "")
-context = os.environ.get("__AICTX_CONTEXT")
-if context is not None:
-    replacements["CONTEXT"] = context
-
-for key, val in replacements.items():
-    template = template.replace(f"{{{{{key}}}}}", val)
-
-Path(sys.argv[2]).write_text(template)
-PY
-  else
-    cat <<EOF > "$output"
-$(cat "$template")
+Options:
+  --engine <auto|codex|claude|gemini>
+  --since <git-ref>
+  --paths "<path1 path2>"
+  --intent <impl|review|tests|release|refactor|debug|finalize|compact>
+  --skill <id>
+  --skills <id1,id2>
+  --no-skill
+  -h, --help
 EOF
-  fi
 }
 
 aictx_git_context(){
@@ -66,17 +47,24 @@ aictx_git_context(){
 }
 
 aictx_review_build_prompt(){
-  local since="$1" paths="$2" git_status="$3" git_diff="$4"
+  local since="$1" paths="$2" git_status="$3" git_diff="$4" active_skills="$5"
   local out
   out="$(ai_mktemp)"
   local context
   context="$(cat "$AICTX_DIR/CONTEXT.md" 2>/dev/null || true)"
-  aictx_template_fill "$AICTX_HOME/templates/REVIEW_PROMPT.md" "$out" \
+  local skill_policy="No active skills."
+  [[ -n "$active_skills" ]] && skill_policy="$(aictx_skills_overlay_block "$active_skills")"
+
+  local template
+  template="$(aictx_template_path "prompts" "REVIEW_PROMPT.md")"
+  aictx_template_fill "$template" "$out" \
     "SINCE=${since:-<not specified>}" \
     "PATHS=${paths:-all tracked files}" \
     "GIT_STATUS=$git_status" \
     "GIT_DIFF=$git_diff" \
-    "CONTEXT=$context"
+    "CONTEXT=$context" \
+    "ACTIVE_SKILLS=${active_skills:-none}" \
+    "SKILL_POLICY=$skill_policy"
   echo "$out"
 }
 
@@ -107,6 +95,7 @@ aictx_review_generate_report(){
   local since="$3"
   local paths="$4"
   local output="$5"
+  local active_skills="$6"
 
   local context_pair
   context_pair="$(aictx_git_context "$since" "$paths")"
@@ -114,7 +103,7 @@ aictx_review_generate_report(){
   IFS=$'\037' read -r git_status git_diff <<< "$context_pair"
 
   local prompt_file
-  prompt_file="$(aictx_review_build_prompt "$since" "$paths" "$git_status" "$git_diff")"
+  prompt_file="$(aictx_review_build_prompt "$since" "$paths" "$git_status" "$git_diff" "$active_skills")"
 
   aictx_review_invoke_engine "$engine" "$model" "$prompt_file" "$output"
   ai_sanitize_transcript "$output"
@@ -122,29 +111,12 @@ aictx_review_generate_report(){
   rm -f "$prompt_file"
 }
 
-aictx_review(){
-  aictx_paths_init
-  aictx_bootstrap
-  aictx_load_config
-
-  local requested_engine=""
-  local since=""
-  local paths=""
-
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --engine) requested_engine="${2:-}"; shift 2;;
-      --since) since="${2:-}"; shift 2;;
-      --paths) paths="${2:-}"; shift 2;;
-      *) ai_die "unknown arg: $1" ;;
-    esac
-  done
-
-  local eng
-  eng="$(aictx_choose_engine "${requested_engine:-$AICTX_ENGINE}")"
-  [[ "$eng" != "none" ]] || ai_die "no engine available for review"
-  local model
-  model="$(aictx_model_for_engine "$eng")"
+aictx_review_runtime_handler(){
+  local engine="$1" model="$2" _input_file="$3" metadata="$4"
+  local since paths active_skills
+  since="$(_aictx_runtime_meta_get "$metadata" "since" "")"
+  paths="$(_aictx_runtime_meta_get "$metadata" "paths" "")"
+  active_skills="$(_aictx_runtime_meta_get "$metadata" "active_skills" "")"
 
   local ts namespace safe_ns report_dir report_file
   ts="$(date +"%Y-%m-%d_%H-%M-%S")"
@@ -154,6 +126,35 @@ aictx_review(){
   mkdir -p "$report_dir"
   report_file="$report_dir/${safe_ns}_${ts}.md"
 
-  aictx_review_generate_report "$eng" "$model" "$since" "$paths" "$report_file"
+  aictx_review_generate_report "$engine" "$model" "$since" "$paths" "$report_file" "$active_skills"
   ai_log "review saved: $report_file"
+}
+
+aictx_review(){
+  local requested_engine=""
+  local since=""
+  local paths=""
+  local intent="" skill_single="" skills_multi="" no_skill="0"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) aictx_review_usage; return 0 ;;
+      --engine) requested_engine="${2:-}"; shift 2 ;;
+      --since) since="${2:-}"; shift 2 ;;
+      --paths) paths="${2:-}"; shift 2 ;;
+      --intent) intent="${2:-}"; shift 2 ;;
+      --skill) skill_single="${2:-}"; shift 2 ;;
+      --skills) skills_multi="${2:-}"; shift 2 ;;
+      --no-skill) no_skill="1"; shift 1 ;;
+      *) ai_die "unknown arg for review: $1 (use: aictx review --help)" ;;
+    esac
+  done
+
+  local active_skills
+  active_skills="$(aictx_select_skills "${intent:-review}" "$skill_single" "$skills_multi" "$no_skill" "review")"
+  export AICTX_ACTIVE_SKILLS="$active_skills"
+
+  local metadata
+  metadata="handler=aictx_review_runtime_handler;since=$since;paths=$paths;active_skills=$active_skills;intent=${intent:-review}"
+  aictx_runtime_execute "review" "${requested_engine:-auto}" "" "" "$metadata"
 }

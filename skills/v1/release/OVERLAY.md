@@ -1,0 +1,5 @@
+- Prioritize safety, rollback clarity, and observability.
+- Require explicit verification steps before and after deployment.
+- Document migration, compatibility, and operator impact.
+- Minimize surface area of change in release-critical paths.
+- Surface blocking unknowns instead of assuming defaults.

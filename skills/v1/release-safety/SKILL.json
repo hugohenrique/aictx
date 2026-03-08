@@ -1,0 +1,7 @@
+{
+  "id": "release-safety",
+  "name": "Release Safety",
+  "overlay_max_lines": 24,
+  "compatible_with": ["triage"],
+  "incompatible_with": ["impl", "review", "tests", "refactor-safe", "debug-root-cause"]
+}

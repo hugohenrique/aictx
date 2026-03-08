@@ -1,0 +1,4 @@
+- Classify the request before acting: impl, review, debug, refactor, tests, or release.
+- State assumptions explicitly and resolve ambiguity early.
+- Pick the smallest safe next step that can be validated quickly.
+- Escalate uncertainty when risk or blast radius is high.

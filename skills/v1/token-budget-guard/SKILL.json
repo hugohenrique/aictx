@@ -1,0 +1,7 @@
+{
+  "id": "token-budget-guard",
+  "name": "Token Budget Guard",
+  "overlay_max_lines": 20,
+  "compatible_with": [],
+  "incompatible_with": []
+}

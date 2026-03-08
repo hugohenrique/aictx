@@ -6,6 +6,8 @@ source "${AICTX_HOME}/lib/core.sh"
 source "${AICTX_HOME}/lib/fs.sh"
 # shellcheck source=./migrate.sh
 source "${AICTX_HOME}/lib/migrate.sh"
+# shellcheck source=./template.sh
+source "${AICTX_HOME}/lib/template.sh"
 
 AICTX_SCHEMA_CURRENT="5"
 
@@ -100,12 +102,12 @@ EOF
 aictx_init_templates(){
   mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR" "$AICTX_DIR/reviews" "$AICTX_DIR/swarm"
 
-  aictx_copy_if_missing "$AICTX_HOME/templates/PROMPT.md" "$AICTX_DIR/PROMPT.md"
-  aictx_copy_if_missing "$AICTX_HOME/templates/CONTEXT.md" "$AICTX_DIR/CONTEXT.md"
-  aictx_copy_if_missing "$AICTX_HOME/templates/DECISIONS.md" "$AICTX_DIR/DECISIONS.md"
-  aictx_copy_if_missing "$AICTX_HOME/templates/TODO.md" "$AICTX_DIR/TODO.md"
-  aictx_copy_if_missing "$AICTX_HOME/templates/config.json" "$AICTX_CONFIG_FILE"
-  aictx_copy_if_missing "$AICTX_HOME/templates/DIGEST.md" "$AICTX_DIGEST_FILE"
+  aictx_copy_if_missing "$(aictx_template_path "context" "PROMPT.md")" "$AICTX_DIR/PROMPT.md"
+  aictx_copy_if_missing "$(aictx_template_path "context" "CONTEXT.md")" "$AICTX_DIR/CONTEXT.md"
+  aictx_copy_if_missing "$(aictx_template_path "context" "DECISIONS.md")" "$AICTX_DIR/DECISIONS.md"
+  aictx_copy_if_missing "$(aictx_template_path "context" "TODO.md")" "$AICTX_DIR/TODO.md"
+  aictx_copy_if_missing "$(aictx_template_path "config" "config.json")" "$AICTX_CONFIG_FILE"
+  aictx_copy_if_missing "$(aictx_template_path "context" "DIGEST.md")" "$AICTX_DIGEST_FILE"
 
   [[ -f "$AICTX_SCHEMA_FILE" ]] || echo "1" > "$AICTX_SCHEMA_FILE"
   [[ -f "$AICTX_INIT_MARK" ]] || date > "$AICTX_INIT_MARK"

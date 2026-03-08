@@ -1,0 +1,7 @@
+{
+  "id": "tests",
+  "name": "Testing",
+  "overlay_max_lines": 22,
+  "compatible_with": ["impl", "review", "refactor-safe"],
+  "incompatible_with": []
+}

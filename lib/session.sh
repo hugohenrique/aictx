@@ -2,12 +2,14 @@
 set -euo pipefail
 # shellcheck source=./core.sh
 source "${AICTX_HOME}/lib/core.sh"
+# shellcheck source=./template.sh
+source "${AICTX_HOME}/lib/template.sh"
 
 aictx_new_session(){
   local ts file
   ts="$(date +"%Y-%m-%d_%H-%M")"
   file="$AICTX_SESS_DIR/$ts.md"
-  cp "$AICTX_HOME/templates/SESSION.md" "$file"
+  cp "$(aictx_template_path "context" "SESSION.md")" "$file"
   if sed -i.bak "s/{{TS}}/$ts/g" "$file" 2>/dev/null; then
     rm -f "$file.bak" 2>/dev/null || true
   else
@@ -34,6 +36,7 @@ aictx_session_pick(){
 
 aictx_pending_create(){
   local engine="$1" model="$2" session_file="$3" transcript="$4"
+  local skills_csv="${5:-}" intent="${6:-}"
   local id; id="$(date +"%Y%m%d_%H%M%S")_$$"
   local p="$AICTX_PENDING_DIR/$id.json"
 
@@ -54,12 +57,29 @@ PY
 "$transcript" 2>/dev/null || echo "$transcript")"
   fi
 
+  local skills_json="[]"
+  if [[ -n "$skills_csv" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+      skills_json="$(python3 - "$skills_csv" <<'PY'
+import json
+import sys
+parts = [p.strip() for p in sys.argv[1].split(",") if p.strip()]
+print(json.dumps(parts))
+PY
+)"
+    else
+      skills_json="[]"
+    fi
+  fi
+
   cat > "$p" <<EOF
 {
   "engine": "$engine",
   "model": "$model",
   "session": "$sess_abs",
   "transcript": "$trs_abs",
+  "intent": "$intent",
+  "skills": $skills_json,
   "created_at": "$(date -Iseconds 2>/dev/null || date)"
 }
 EOF

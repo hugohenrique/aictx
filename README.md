@@ -61,6 +61,9 @@ aictx run                      # main flow
 aictx run --dry-run            # estimate prompt/tokens only
 aictx run --engine claude      # force Claude
 aictx run --engine gemini      # force Gemini
+aictx run --intent review      # intent-based skill selection
+aictx run --skills impl,tests  # explicit skills
+aictx run --no-skill           # disable overlays for one run
 aictx stats                    # inspect prompt/token metrics
 aictx cleanup                  # manual maintenance (usually unnecessary)
 ```
@@ -78,6 +81,11 @@ Auto-compaction runs on `aictx run` by default (deterministic, no AI). Main opti
 - `context_max_lines`: CONTEXT warning threshold (default `20`)
 - `decisions_max_chars`: DECISIONS size cap for cleanup + warning (default `5000`)
 - `todo_max_chars`: TODO warning threshold (default `1200`)
+- `skills.enabled`: enable/disable Skills v1 overlays (default `true`)
+- `skills.auto_select`: infer skills by command/intent when none passed (default `true`)
+- `skills.max_active`: maximum active skills per run (default `2`)
+- `skills.intent_map`: intent -> skill ids map used by `--intent`
+- Recommended map v2: `impl/review/tests/release/refactor/debug/finalize/compact` with `triage` as first pass for complex intents.
 
 If you want the previous (token-heavy) behavior, set:
 ```json
@@ -118,6 +126,18 @@ aictx run --model gpt-5.1-codex-max   # uses Codex
 aictx run --model sonnet              # uses Claude
 aictx run --model gemini-2.0-flash    # uses Gemini
 ```
+
+### Skills v1 (policy overlays)
+- `aictx run --skill review`: activate one skill.
+- `aictx run --skills impl,review`: activate a validated skill pair.
+- `aictx run --intent tests`: resolve skills from `config.json` intent map.
+- `aictx run --no-skill`: bypass all skills for the current run.
+- Precedence: `--no-skill` > `--skills/--skill` > `--intent` > inferred default.
+- Default inference: `run -> impl`, `review -> review`, `swarm -> impl,review`.
+- Skill contracts live in `SKILL.json` + `OVERLAY.md`, overlays are capped to 40 lines.
+- Suggested skills for higher signal:
+  - `triage`, `debug-root-cause`, `test-strategy`, `review-critical`
+  - `release-safety`, `memory-hygiene`, `token-budget-guard`
 
 
 ### Background finalize safety
