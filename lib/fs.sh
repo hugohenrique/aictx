@@ -20,6 +20,8 @@ aictx_paths_init(){
   export AICTX_INIT_MARK; AICTX_INIT_MARK="$AICTX_DIR/.initialized"
   export AICTX_DIGEST_FILE; AICTX_DIGEST_FILE="$AICTX_DIR/DIGEST.md"
   export AICTX_CONFIG_FILE; AICTX_CONFIG_FILE="$AICTX_DIR/config.json"
+  export AICTX_CONSTITUTION_FILE; AICTX_CONSTITUTION_FILE="$AICTX_DIR/constitution.md"
+  export AICTX_SPECS_DIR; AICTX_SPECS_DIR="$AICTX_DIR/specs"
 }
 
 aictx_ensure_line_once(){

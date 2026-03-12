@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/fs.sh"
 source "${AICTX_HOME}/lib/skill_runtime.sh"
 # shellcheck source=./template.sh
 source "${AICTX_HOME}/lib/template.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./runtime.sh
 source "${AICTX_HOME}/lib/runtime.sh"
 
@@ -23,6 +25,7 @@ Options:
   --skill <id>
   --skills <id1,id2>
   --no-skill
+  --spec <slug>
   -h, --help
 EOF
 }
@@ -47,13 +50,19 @@ aictx_git_context(){
 }
 
 aictx_review_build_prompt(){
-  local since="$1" paths="$2" git_status="$3" git_diff="$4" active_skills="$5"
+  local since="$1" paths="$2" git_status="$3" git_diff="$4" active_skills="$5" spec_slug="${6:-}"
   local out
   out="$(ai_mktemp)"
   local context
   context="$(cat "$AICTX_DIR/CONTEXT.md" 2>/dev/null || true)"
   local skill_policy="No active skills."
   [[ -n "$active_skills" ]] && skill_policy="$(aictx_skills_overlay_block "$active_skills")"
+  local spec_paths="none"
+  local spec_context="No active spec."
+  if [[ -n "$spec_slug" ]]; then
+    spec_paths="$(aictx_spec_paths_label "$spec_slug")"
+    spec_context="$(aictx_spec_inline_block "$spec_slug")"
+  fi
 
   local template
   template="$(aictx_template_path "prompts" "REVIEW_PROMPT.md")"
@@ -63,6 +72,9 @@ aictx_review_build_prompt(){
     "GIT_STATUS=$git_status" \
     "GIT_DIFF=$git_diff" \
     "CONTEXT=$context" \
+    "SPEC_SLUG=${spec_slug:-none}" \
+    "SPEC_PATHS=$spec_paths" \
+    "SPEC_CONTEXT=$spec_context" \
     "ACTIVE_SKILLS=${active_skills:-none}" \
     "SKILL_POLICY=$skill_policy"
   echo "$out"
@@ -96,6 +108,7 @@ aictx_review_generate_report(){
   local paths="$4"
   local output="$5"
   local active_skills="$6"
+  local spec_slug="${7:-}"
 
   local context_pair
   context_pair="$(aictx_git_context "$since" "$paths")"
@@ -103,7 +116,7 @@ aictx_review_generate_report(){
   IFS=$'\037' read -r git_status git_diff <<< "$context_pair"
 
   local prompt_file
-  prompt_file="$(aictx_review_build_prompt "$since" "$paths" "$git_status" "$git_diff" "$active_skills")"
+  prompt_file="$(aictx_review_build_prompt "$since" "$paths" "$git_status" "$git_diff" "$active_skills" "$spec_slug")"
 
   aictx_review_invoke_engine "$engine" "$model" "$prompt_file" "$output"
   ai_sanitize_transcript "$output"
@@ -113,10 +126,11 @@ aictx_review_generate_report(){
 
 aictx_review_runtime_handler(){
   local engine="$1" model="$2" _input_file="$3" metadata="$4"
-  local since paths active_skills
+  local since paths active_skills spec_slug
   since="$(_aictx_runtime_meta_get "$metadata" "since" "")"
   paths="$(_aictx_runtime_meta_get "$metadata" "paths" "")"
   active_skills="$(_aictx_runtime_meta_get "$metadata" "active_skills" "")"
+  spec_slug="$(_aictx_runtime_meta_get "$metadata" "spec_slug" "")"
 
   local ts namespace safe_ns report_dir report_file
   ts="$(date +"%Y-%m-%d_%H-%M-%S")"
@@ -126,7 +140,7 @@ aictx_review_runtime_handler(){
   mkdir -p "$report_dir"
   report_file="$report_dir/${safe_ns}_${ts}.md"
 
-  aictx_review_generate_report "$engine" "$model" "$since" "$paths" "$report_file" "$active_skills"
+  aictx_review_generate_report "$engine" "$model" "$since" "$paths" "$report_file" "$active_skills" "$spec_slug"
   ai_log "review saved: $report_file"
 }
 
@@ -134,7 +148,7 @@ aictx_review(){
   local requested_engine=""
   local since=""
   local paths=""
-  local intent="" skill_single="" skills_multi="" no_skill="0"
+  local intent="" skill_single="" skills_multi="" no_skill="0" spec_slug=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -146,15 +160,18 @@ aictx_review(){
       --skill) skill_single="${2:-}"; shift 2 ;;
       --skills) skills_multi="${2:-}"; shift 2 ;;
       --no-skill) no_skill="1"; shift 1 ;;
+      --spec) spec_slug="$(aictx_spec_slug_normalize "${2:-}")"; shift 2 ;;
       *) ai_die "unknown arg for review: $1 (use: aictx review --help)" ;;
     esac
   done
 
+  [[ -z "$spec_slug" ]] || aictx_spec_assert_exists "$spec_slug"
   local active_skills
   active_skills="$(aictx_select_skills "${intent:-review}" "$skill_single" "$skills_multi" "$no_skill" "review")"
   export AICTX_ACTIVE_SKILLS="$active_skills"
+  export AICTX_ACTIVE_SPEC="$spec_slug"
 
   local metadata
-  metadata="handler=aictx_review_runtime_handler;since=$since;paths=$paths;active_skills=$active_skills;intent=${intent:-review}"
+  metadata="handler=aictx_review_runtime_handler;since=$since;paths=$paths;active_skills=$active_skills;intent=${intent:-review};spec_slug=$spec_slug"
   aictx_runtime_execute "review" "${requested_engine:-auto}" "" "" "$metadata"
 }

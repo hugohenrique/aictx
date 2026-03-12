@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/fs.sh"
 source "${AICTX_HOME}/lib/config.sh"
 # shellcheck source=./context_budget.sh
 source "${AICTX_HOME}/lib/context_budget.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 
 aictx_metrics_file(){
   echo "$AICTX_DIR/metrics.jsonl"
@@ -106,7 +108,7 @@ aictx_metrics_predict_session_context(){
 }
 
 aictx_metrics_collect_rows(){
-  local mode="$1" session_file="$2" prev_session="$3"
+  local mode="$1" session_file="$2" prev_session="$3" spec_slug="${4:-}"
   local rows=""
   local file chars
 
@@ -133,6 +135,13 @@ aictx_metrics_collect_rows(){
   if [[ "$AICTX_PLAN_LOAD_PREV_SESSION" == "1" && -n "$prev_session" ]]; then
     chars="$(aictx_metrics_chars "$prev_session")"
     rows+="referenced|last_session|$prev_session|$chars"$'\n'
+  fi
+  if [[ -n "$spec_slug" ]]; then
+    while IFS= read -r file; do
+      [[ -n "$file" ]] || continue
+      chars="$(aictx_metrics_chars "$file")"
+      rows+="referenced|spec|$file|$chars"$'\n'
+    done < <(aictx_spec_context_files "$spec_slug")
   fi
 
   echo "$rows"
@@ -214,9 +223,17 @@ aictx_metrics_log_run(){
 }
 
 aictx_prompt_plan(){
+  local spec_slug=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --spec) spec_slug="$(aictx_spec_slug_normalize "${2:-}")"; shift 2 ;;
+      *) ai_die "unknown arg for prompt-plan: $1 (use: aictx prompt-plan [--spec <slug>])" ;;
+    esac
+  done
   aictx_paths_init
   [[ -d "$AICTX_DIR" ]] || ai_die "no .aictx/ found in this project. Run: aictx init"
   aictx_load_config
+  [[ -z "$spec_slug" ]] || aictx_spec_assert_exists "$spec_slug"
 
   local predicted session_file prev_session
   predicted="$(aictx_metrics_predict_session_context)"
@@ -227,19 +244,27 @@ aictx_prompt_plan(){
 
   aictx_context_plan "$session_file" "$prev_session" "$AICTX_PROMPT_MODE"
   aictx_context_plan "$session_file" "$prev_session" "$AICTX_PROMPT_MODE" "print"
+  if [[ -n "$spec_slug" ]]; then
+    echo "Active spec: $spec_slug"
+    echo "Spec files: $(aictx_spec_paths_label "$spec_slug")"
+  fi
 }
 
 aictx_stats(){
   local explain="0"
-  if [[ "${1:-}" == "--explain" ]]; then
-    explain="1"
-    shift
-  fi
-  [[ $# -eq 0 ]] || ai_die "unknown arg for stats: $1 (use: aictx stats [--explain])"
+  local spec_slug=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --explain) explain="1"; shift ;;
+      --spec) spec_slug="$(aictx_spec_slug_normalize "${2:-}")"; shift 2 ;;
+      *) ai_die "unknown arg for stats: $1 (use: aictx stats [--explain] [--spec <slug>])" ;;
+    esac
+  done
 
   aictx_paths_init
   [[ -d "$AICTX_DIR" ]] || ai_die "no .aictx/ found in this project. Run: aictx init"
   aictx_load_config
+  [[ -z "$spec_slug" ]] || aictx_spec_assert_exists "$spec_slug"
 
   local predicted session_file prev_session
   predicted="$(aictx_metrics_predict_session_context)"
@@ -249,7 +274,7 @@ aictx_stats(){
   [[ "$session_file" == "__NEW__" ]] && session_file=""
 
   local rows total_chars tokens_est
-  rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session_file" "$prev_session")"
+  rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session_file" "$prev_session" "$spec_slug")"
   total_chars="$(aictx_metrics_sum_chars "$rows")"
   tokens_est="$(aictx_metrics_tokens_est "$total_chars")"
 

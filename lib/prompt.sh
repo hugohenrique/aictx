@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/skill_runtime.sh"
 source "${AICTX_HOME}/lib/context_budget.sh"
 # shellcheck source=./template.sh
 source "${AICTX_HOME}/lib/template.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 
 # Phase 3: Delta-based DIGEST optimization
 aictx_snapshot_digest(){
@@ -90,6 +92,7 @@ aictx_build_prompt(){
   local mode="${3:-paths}"
   local active_skills="${4:-}"
   local intent="${5:-}"
+  local spec_slug="${6:-}"
   local out
   out="$(ai_mktemp)"
   local skills_label="none"
@@ -111,6 +114,7 @@ aictx_build_prompt(){
       echo ""
       echo "Intent: $intent"
       echo "Active skills: $skills_label"
+      [[ -n "$spec_slug" ]] && echo "Spec: $spec_slug"
       if [[ -n "$active_skills" ]]; then
         echo ""
         aictx_skills_overlay_block "$active_skills"
@@ -134,18 +138,28 @@ aictx_build_prompt(){
         echo "## Previous session"
         cat "$prev_session"
       fi
+      if [[ -n "$spec_slug" ]]; then
+        echo "## Active spec"
+        aictx_spec_inline_block "$spec_slug"
+      fi
       echo "## Session file to update"
       echo "$session_file"
     } > "$out"
   else
     local optional_files=""
-    local prompt_rel digest_rel opt_rel session_rel
+    local prompt_rel digest_rel opt_rel session_rel spec_paths_rel
 
     [[ "$AICTX_PLAN_LOAD_CONTEXT" == "1" ]] && optional_files="$optional_files $AICTX_DIR/CONTEXT.md"
     [[ "$AICTX_PLAN_LOAD_DECISIONS" == "1" ]] && optional_files="$optional_files $AICTX_DIR/DECISIONS.md"
     [[ "$AICTX_PLAN_LOAD_TODO" == "1" ]] && optional_files="$optional_files $AICTX_DIR/TODO.md"
     if [[ "$AICTX_PLAN_LOAD_PREV_SESSION" == "1" && -n "$prev_session" ]]; then
       optional_files="$optional_files $prev_session"
+    fi
+    if [[ -n "$spec_slug" ]]; then
+      local spec_file
+      while IFS= read -r spec_file; do
+        [[ -n "$spec_file" ]] && optional_files="$optional_files $spec_file"
+      done < <(aictx_spec_context_files "$spec_slug")
     fi
 
     {
@@ -160,6 +174,7 @@ aictx_build_prompt(){
       echo ""
       echo "Intent: $intent"
       echo "Active skills: $skills_label"
+      [[ -n "$spec_slug" ]] && echo "Spec: $spec_slug"
       if [[ -n "$active_skills" ]]; then
         echo ""
         aictx_skills_overlay_block "$active_skills"
@@ -175,11 +190,15 @@ aictx_build_prompt(){
       done
 
       session_rel="${session_file#$AICTX_ROOT/}"
+      spec_paths_rel="$(aictx_spec_paths_label "$spec_slug")"
 
       if [[ -n "$opt_rel" ]]; then
         echo "Read: $prompt_rel; $digest_rel first. Opt: $opt_rel${AICTX_PLAN_CONTEXT_NOTE}"
       else
         echo "Read: $prompt_rel; $digest_rel first.${AICTX_PLAN_CONTEXT_NOTE}"
+      fi
+      if [[ -n "$spec_slug" ]]; then
+        echo "Spec files: $spec_paths_rel"
       fi
       echo "Session: $session_rel"
     } > "$out"

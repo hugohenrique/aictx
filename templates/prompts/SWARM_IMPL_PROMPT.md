@@ -11,6 +11,8 @@ COGNITIVE HIERARCHY (STRICT)
 Project root: {{ROOT}}
 Paths: {{PATHS}}
 Since: {{SINCE}}
+Spec: {{SPEC_SLUG}}
+Spec files: {{SPEC_PATHS}}
 Intent: {{INTENT}}
 Active skills: {{ACTIVE_SKILLS}}
 
@@ -25,6 +27,9 @@ Diff stats:
 
 Context:
 {{CONTEXT}}
+
+Spec context:
+{{SPEC_CONTEXT}}
 
 Deliver a concise, implementation-ready response with sections for:
 - Architecture changes (modular boundaries, reusable components)

@@ -100,12 +100,16 @@ EOF
 }
 
 aictx_init_templates(){
-  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR" "$AICTX_DIR/reviews" "$AICTX_DIR/swarm"
+  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR" "$AICTX_DIR/reviews" "$AICTX_DIR/swarm" "$AICTX_SPECS_DIR"
 
   aictx_copy_if_missing "$(aictx_template_path "context" "PROMPT.md")" "$AICTX_DIR/PROMPT.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "CONTEXT.md")" "$AICTX_DIR/CONTEXT.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "DECISIONS.md")" "$AICTX_DIR/DECISIONS.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "TODO.md")" "$AICTX_DIR/TODO.md"
+  if [[ -f "$AICTX_DIR/CHARTER.md" && ! -f "$AICTX_CONSTITUTION_FILE" ]]; then
+    cp "$AICTX_DIR/CHARTER.md" "$AICTX_CONSTITUTION_FILE"
+  fi
+  aictx_copy_if_missing "$(aictx_template_path "context" "constitution.md")" "$AICTX_CONSTITUTION_FILE"
   aictx_copy_if_missing "$(aictx_template_path "config" "config.json")" "$AICTX_CONFIG_FILE"
   aictx_copy_if_missing "$(aictx_template_path "context" "DIGEST.md")" "$AICTX_DIGEST_FILE"
 

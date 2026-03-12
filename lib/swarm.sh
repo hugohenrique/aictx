@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/fs.sh"
 source "${AICTX_HOME}/lib/skill_runtime.sh"
 # shellcheck source=./template.sh
 source "${AICTX_HOME}/lib/template.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./runtime.sh
 source "${AICTX_HOME}/lib/runtime.sh"
 # shellcheck source=./review.sh
@@ -27,6 +29,7 @@ Options:
   --skill <id>
   --skills <id1,id2>
   --no-skill
+  --spec <slug>
   -h, --help
 EOF
 }
@@ -48,13 +51,14 @@ aictx_swarm_pass(){
 aictx_swarm_runtime_handler(){
   local impl_engine="$1" impl_model="$2" _input_file="$3" metadata="$4"
 
-  local review_spec since paths fix_flag intent active_skills
+  local review_spec since paths fix_flag intent active_skills spec_slug
   review_spec="$(_aictx_runtime_meta_get "$metadata" "review_spec" "claude")"
   since="$(_aictx_runtime_meta_get "$metadata" "since" "")"
   paths="$(_aictx_runtime_meta_get "$metadata" "paths" "")"
   fix_flag="$(_aictx_runtime_meta_get "$metadata" "fix_flag" "0")"
   intent="$(_aictx_runtime_meta_get "$metadata" "intent" "swarm")"
   active_skills="$(_aictx_runtime_meta_get "$metadata" "active_skills" "")"
+  spec_slug="$(_aictx_runtime_meta_get "$metadata" "spec_slug" "")"
 
   local review_engine
   review_engine="$(aictx_choose_engine "${review_spec:-claude}")"
@@ -75,6 +79,12 @@ aictx_swarm_runtime_handler(){
   paths_desc="${paths:-all tracked files}"
   since_desc="${since:-<not specified>}"
   context="$(cat "$AICTX_DIR/CONTEXT.md" 2>/dev/null || true)"
+  local spec_paths="none"
+  local spec_context="No active spec."
+  if [[ -n "$spec_slug" ]]; then
+    spec_paths="$(aictx_spec_paths_label "$spec_slug")"
+    spec_context="$(aictx_spec_inline_block "$spec_slug")"
+  fi
 
   local impl_output review_output fix_output
   impl_output="$(ai_mktemp)"
@@ -87,11 +97,14 @@ aictx_swarm_runtime_handler(){
     "GIT_STATUS=$git_status" \
     "GIT_DIFF=$git_diff" \
     "CONTEXT=$context" \
+    "SPEC_SLUG=${spec_slug:-none}" \
+    "SPEC_PATHS=$spec_paths" \
+    "SPEC_CONTEXT=$spec_context" \
     "INTENT=$intent" \
     "ACTIVE_SKILLS=${active_skills:-none}" \
     "SKILL_POLICY=$skill_policy"
 
-  aictx_review_generate_report "$review_engine" "$review_model" "$since" "$paths" "$review_output" "$active_skills"
+  aictx_review_generate_report "$review_engine" "$review_model" "$since" "$paths" "$review_output" "$active_skills" "$spec_slug"
 
   local fix_section="Fix pass not requested."
   if [[ "$fix_flag" == "1" ]]; then
@@ -102,6 +115,9 @@ aictx_swarm_runtime_handler(){
       "GIT_DIFF=$git_diff" \
       "IMPLEMENTATION_SUMMARY=$(cat "$impl_output")" \
       "REVIEW_SUMMARY=$(cat "$review_output")" \
+      "SPEC_SLUG=${spec_slug:-none}" \
+      "SPEC_PATHS=$spec_paths" \
+      "SPEC_CONTEXT=$spec_context" \
       "INTENT=$intent" \
       "ACTIVE_SKILLS=${active_skills:-none}" \
       "SKILL_POLICY=$skill_policy"
@@ -125,6 +141,7 @@ aictx_swarm_runtime_handler(){
     printf 'Timestamp: %s\n' "$ts"
     printf 'Paths: %s\n' "$paths_desc"
     printf 'Since: %s\n\n' "$since_desc"
+    printf 'Spec: %s\n' "${spec_slug:-none}"
     printf 'Intent: %s\n' "$intent"
     printf 'Active skills: %s\n\n' "${active_skills:-none}"
     printf '## Git status\n%s\n\n' "$git_status"
@@ -149,7 +166,7 @@ aictx_swarm(){
   local since=""
   local paths=""
   local fix_flag="0"
-  local intent="" skill_single="" skills_multi="" no_skill="0"
+  local intent="" skill_single="" skills_multi="" no_skill="0" spec_slug=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -163,16 +180,19 @@ aictx_swarm(){
       --skill) skill_single="${2:-}"; shift 2 ;;
       --skills) skills_multi="${2:-}"; shift 2 ;;
       --no-skill) no_skill="1"; shift 1 ;;
+      --spec) spec_slug="$(aictx_spec_slug_normalize "${2:-}")"; shift 2 ;;
       *) ai_die "unknown arg for swarm: $1 (use: aictx swarm --help)" ;;
     esac
   done
 
+  [[ -z "$spec_slug" ]] || aictx_spec_assert_exists "$spec_slug"
   local active_skills
   active_skills="$(aictx_select_skills "$intent" "$skill_single" "$skills_multi" "$no_skill" "swarm")"
   export AICTX_ACTIVE_SKILLS="$active_skills"
+  export AICTX_ACTIVE_SPEC="$spec_slug"
   [[ -z "$intent" ]] && intent="swarm"
 
   local metadata
-  metadata="handler=aictx_swarm_runtime_handler;review_spec=$review_spec;since=$since;paths=$paths;fix_flag=$fix_flag;intent=$intent;active_skills=$active_skills"
+  metadata="handler=aictx_swarm_runtime_handler;review_spec=$review_spec;since=$since;paths=$paths;fix_flag=$fix_flag;intent=$intent;active_skills=$active_skills;spec_slug=$spec_slug"
   aictx_runtime_execute "swarm" "${impl_spec:-codex}" "" "" "$metadata"
 }

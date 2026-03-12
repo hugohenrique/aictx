@@ -21,6 +21,8 @@ source "${AICTX_HOME}/lib/launchd.sh"
 source "${AICTX_HOME}/lib/cleanup.sh"
 # shellcheck source=./review.sh
 source "${AICTX_HOME}/lib/review.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./swarm.sh
 source "${AICTX_HOME}/lib/swarm.sh"
 # shellcheck source=./metrics.sh
@@ -36,6 +38,9 @@ aictx_help_command(){
   local topic="${1:-}"
   case "$topic" in
     ""|all|global) aictx_usage ;;
+    constitution) aictx_constitution_usage ;;
+    specify) aictx_specify_usage ;;
+    analyze) aictx_analyze_usage ;;
     run) aictx_run_usage ;;
     review) aictx_review_usage ;;
     swarm) aictx_swarm_usage ;;
@@ -54,6 +59,9 @@ aictx — per-project AI context runner (Codex + Claude + Gemini) with token-opt
 
 Commands:
   init                 bootstrap .aictx/
+  constitution         initialize/repair the local constitution file
+  specify              create a spec workspace for a feature
+  analyze              validate spec/plan/tasks consistency
   run                  run interactive session (codex/claude/gemini)
   finalize             finalize latest (or specified) transcript/session
   watch                background worker to finalize pending items
@@ -82,11 +90,13 @@ Skills flags (run/review/swarm):
   --skill       activate one skill id
   --skills      activate comma-separated skill ids
   --no-skill    disable skill overlays for this run
+  --spec        attach a spec workspace from .aictx/specs/<slug>
 
 Review flags:
   --engine      choose engine for the review pass
   --since       compare from git ref
   --paths       restrict analysis paths (space-separated)
+  --spec        attach a spec workspace from .aictx/specs/<slug>
 
 Swarm flags:
   --impl        implementation pass engine (default: codex)
@@ -111,6 +121,10 @@ Examples:
   aictx run --skills impl,review
   aictx run --no-skill
   aictx run --engine claude --model opus
+  aictx constitution
+  aictx specify 001-example-feature
+  aictx analyze 001-example-feature
+  aictx run --spec 001-example-feature --dry-run
   aictx review --engine claude --since main --paths src/
   aictx swarm --impl codex --review claude --fix
   aictx validate --strict
@@ -177,7 +191,11 @@ aictx_main(){
     validate) aictx_validate ${cmd_args[@]+"${cmd_args[@]}"} ;;
     sync) aictx_sync ${cmd_args[@]+"${cmd_args[@]}"} ;;
     install-launchd) aictx_install_launchd ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    constitution) aictx_constitution ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    specify) aictx_specify ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    analyze) aictx_analyze ${cmd_args[@]+"${cmd_args[@]}"} ;;
     review) aictx_review ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    spec) aictx_spec ${cmd_args[@]+"${cmd_args[@]}"} ;;
     swarm) aictx_swarm ${cmd_args[@]+"${cmd_args[@]}"} ;;
     *) aictx_usage; ai_die "unknown command: $cmd" ;;
   esac
