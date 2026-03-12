@@ -148,8 +148,8 @@ Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate se
 - **Review mode**: `aictx review` (read-only) asks the configured engine to evaluate architecture, code quality, tests, and risks, storing structured reports under `.aictx/reviews/` without touching repository files.
 - **Swarm mode**: `aictx swarm` chains implementation + review passes (plus an optional fix pass) using the review prompts and saves the narrative report under `.aictx/swarm/`. Use `--fix` to generate remediation guidance based on the implementation and review outputs.
 
-### Gemini CLI notes
-- `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.
+### Gemini CLI note
+- `GEMINI.md` is treated as an engine-specific adapter file, not core project memory. `aictx` creates it on demand only when the Gemini engine is used.
 
 
 ### Model-based routing (level 1)

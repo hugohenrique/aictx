@@ -107,18 +107,10 @@ aictx_sync_agents_md(){
   rm -f "$block_file"
 }
 
-aictx_sync_gemini_md(){
-  local dst="$AICTX_ROOT/GEMINI.md"
-  local src
-  src="$(aictx_template_path "host" "GEMINI.md")"
-  [[ -f "$dst" ]] || cp "$src" "$dst"
-}
-
 aictx_sync(){
   aictx_paths_init
   aictx_init_templates
   aictx_init_project_skill
   aictx_sync_agents_md
-  aictx_sync_gemini_md
-  ai_log "sync complete (.aictx, AGENTS.md, GEMINI.md, project skill)"
+  ai_log "sync complete (.aictx, AGENTS.md, project skill)"
 }

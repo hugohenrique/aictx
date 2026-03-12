@@ -107,10 +107,9 @@ aictx_validate(){
   fi
 
   if [[ -f "$AICTX_ROOT/GEMINI.md" ]]; then
-    _aictx_validate_print ok "GEMINI.md present"
+    _aictx_validate_print ok "GEMINI.md present (engine-specific adapter)"
   else
-    _aictx_validate_print fail "GEMINI.md missing"
-    failures=$((failures + 1))
+    _aictx_validate_print warn "GEMINI.md absent (created on demand for Gemini CLI)"
   fi
 
   if [[ "$strict" == "1" ]]; then
