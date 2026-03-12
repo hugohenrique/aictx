@@ -47,7 +47,7 @@ aictx_status(){
   echo "last session: $(ai_latest_file "$AICTX_SESS_DIR" "*.md" || echo "<none>")"
   echo "last log:     $(ai_latest_file "$AICTX_TRS_DIR" "*.log" || echo "<none>")"
   echo "pending:      $(ls "$AICTX_PENDING_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')"
-  echo "charter:      $( [[ -f "$AICTX_CHARTER_FILE" ]] && echo "$AICTX_CHARTER_FILE" || echo "<none>" )"
+  echo "constitution: $( [[ -f "$AICTX_CONSTITUTION_FILE" ]] && echo "$AICTX_CONSTITUTION_FILE" || echo "<none>" )"
   echo "specs:        $(find "$AICTX_SPECS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
 }
 

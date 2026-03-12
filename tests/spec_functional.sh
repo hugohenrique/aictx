@@ -36,16 +36,17 @@ mkdir -p "$TMP_DIR/repo"
 )
 
 run_cmd init >/tmp/aictx-spec-init.out 2>/tmp/aictx-spec-init.err
-[[ -f "$TMP_DIR/repo/.aictx/CHARTER.md" ]]
+[[ -f "$TMP_DIR/repo/.aictx/constitution.md" ]]
 [[ -d "$TMP_DIR/repo/.aictx/specs" ]]
 
-run_cmd spec create 001-login-rate-limit >/tmp/aictx-spec-create.out 2>/tmp/aictx-spec-create.err
+run_cmd constitution >/tmp/aictx-constitution.out 2>/tmp/aictx-constitution.err
+run_cmd specify 001-login-rate-limit >/tmp/aictx-spec-create.out 2>/tmp/aictx-spec-create.err
 [[ -f "$TMP_DIR/repo/.aictx/specs/001-login-rate-limit/spec.md" ]]
 [[ -f "$TMP_DIR/repo/.aictx/specs/001-login-rate-limit/plan.md" ]]
 [[ -f "$TMP_DIR/repo/.aictx/specs/001-login-rate-limit/tasks.md" ]]
 [[ -f "$TMP_DIR/repo/.aictx/specs/001-login-rate-limit/meta.json" ]]
 
-run_cmd spec analyze 001-login-rate-limit >/tmp/aictx-spec-analyze.out 2>/tmp/aictx-spec-analyze.err
+run_cmd analyze 001-login-rate-limit >/tmp/aictx-spec-analyze.out 2>/tmp/aictx-spec-analyze.err
 assert_contains /tmp/aictx-spec-analyze.out "[OK] .aictx/specs/001-login-rate-limit/spec.md"
 assert_contains /tmp/aictx-spec-analyze.out "[OK] tasks cover requirement R1"
 assert_contains /tmp/aictx-spec-analyze.out "[OK] test or validation tasks found:"
@@ -55,7 +56,7 @@ assert_contains /tmp/aictx-spec-plan.out "Active spec: 001-login-rate-limit"
 assert_contains /tmp/aictx-spec-plan.out ".aictx/specs/001-login-rate-limit/spec.md"
 
 run_cmd stats --spec 001-login-rate-limit > /tmp/aictx-spec-stats.out
-assert_contains /tmp/aictx-spec-stats.out ".aictx/CHARTER.md"
+assert_contains /tmp/aictx-spec-stats.out ".aictx/constitution.md"
 assert_contains /tmp/aictx-spec-stats.out ".aictx/specs/001-login-rate-limit/tasks.md"
 
 run_cmd run --dry-run --spec 001-login-rate-limit > /tmp/aictx-spec-dry-run.out
@@ -63,7 +64,7 @@ assert_contains /tmp/aictx-spec-dry-run.out "DRY RUN: engine execution skipped."
 assert_contains /tmp/aictx-spec-dry-run.out ".aictx/specs/001-login-rate-limit/plan.md"
 
 perl -0pi -e 's/\- \[ \] \[R2\].*\n//' "$TMP_DIR/repo/.aictx/specs/001-login-rate-limit/tasks.md"
-if run_cmd spec analyze 001-login-rate-limit >/tmp/aictx-spec-analyze-fail.out 2>/tmp/aictx-spec-analyze-fail.err; then
+if run_cmd analyze 001-login-rate-limit >/tmp/aictx-spec-analyze-fail.out 2>/tmp/aictx-spec-analyze-fail.err; then
   echo "expected spec analyze to fail when requirement coverage is missing" >&2
   exit 1
 fi

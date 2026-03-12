@@ -9,15 +9,27 @@ source "${AICTX_HOME}/lib/bootstrap.sh"
 # shellcheck source=./template.sh
 source "${AICTX_HOME}/lib/template.sh"
 
-aictx_spec_usage(){
+aictx_constitution_usage(){
   cat <<EOF
-Usage: aictx spec <command> [options]
+Usage: aictx constitution [init]
 
-Commands:
-  init
-  create <slug>
-  show <slug>
-  analyze <slug>
+Initialize or repair the local constitution file at .aictx/constitution.md.
+EOF
+}
+
+aictx_specify_usage(){
+  cat <<EOF
+Usage: aictx specify <slug>
+
+Create a feature workspace under .aictx/specs/<slug>/ with spec/plan/tasks artifacts.
+EOF
+}
+
+aictx_analyze_usage(){
+  cat <<EOF
+Usage: aictx analyze <slug>
+
+Validate consistency and coverage across spec.md, plan.md, and tasks.md.
 EOF
 }
 
@@ -68,7 +80,7 @@ aictx_spec_assert_exists(){
 aictx_spec_primary_files(){
   local slug="$1"
   local files=()
-  [[ -f "$AICTX_CHARTER_FILE" ]] && files+=("$AICTX_CHARTER_FILE")
+  [[ -f "$AICTX_CONSTITUTION_FILE" ]] && files+=("$AICTX_CONSTITUTION_FILE")
   local name
   for name in spec.md plan.md tasks.md; do
     [[ -f "$(aictx_spec_file "$slug" "$name")" ]] && files+=("$(aictx_spec_file "$slug" "$name")")
@@ -129,12 +141,12 @@ aictx_spec_inline_block(){
 
 aictx_spec_init(){
   aictx_spec_bootstrap
-  ai_log "spec workspace ready: $AICTX_SPECS_DIR"
+  ai_log "constitution/spec workspace ready: $AICTX_SPECS_DIR"
 }
 
 aictx_spec_create(){
   local raw_slug="${1:-}"
-  [[ -n "$raw_slug" ]] || ai_die "usage: aictx spec create <slug>"
+  [[ -n "$raw_slug" ]] || ai_die "usage: aictx specify <slug>"
 
   aictx_spec_bootstrap
 
@@ -166,14 +178,14 @@ aictx_spec_create(){
 
 aictx_spec_show(){
   local slug="${1:-}"
-  [[ -n "$slug" ]] || ai_die "usage: aictx spec show <slug>"
+  [[ -n "$slug" ]] || ai_die "usage: aictx specify <slug>"
   aictx_spec_assert_exists "$slug"
 
   local spec_dir
   spec_dir="$(aictx_spec_dir "$slug")"
   echo "slug: $slug"
   echo "dir: $spec_dir"
-  echo "charter: $AICTX_CHARTER_FILE"
+  echo "constitution: $AICTX_CONSTITUTION_FILE"
   echo "files:"
   local f
   while IFS= read -r f; do
@@ -183,12 +195,12 @@ aictx_spec_show(){
 
 aictx_spec_analyze(){
   local slug="${1:-}"
-  [[ -n "$slug" ]] || ai_die "usage: aictx spec analyze <slug>"
+  [[ -n "$slug" ]] || ai_die "usage: aictx analyze <slug>"
   aictx_spec_assert_exists "$slug"
 
   local failures=0
   local required=(
-    "$AICTX_CHARTER_FILE"
+    "$AICTX_CONSTITUTION_FILE"
     "$(aictx_spec_file "$slug" "spec.md")"
     "$(aictx_spec_file "$slug" "plan.md")"
     "$(aictx_spec_file "$slug" "tasks.md")"
@@ -326,11 +338,49 @@ aictx_spec(){
   shift || true
 
   case "$cmd" in
-    -h|--help|"") aictx_spec_usage ;;
+    -h|--help|"")
+      ai_log "warning: 'aictx spec' is a legacy alias; prefer 'aictx constitution', 'aictx specify', and 'aictx analyze'."
+      aictx_spec_usage
+      ;;
     init) aictx_spec_init "$@" ;;
     create) aictx_spec_create "$@" ;;
     show) aictx_spec_show "$@" ;;
     analyze) aictx_spec_analyze "$@" ;;
     *) ai_die "unknown spec command: $cmd" ;;
   esac
+}
+
+aictx_constitution(){
+  local cmd="${1:-init}"
+  case "$cmd" in
+    -h|--help) aictx_constitution_usage ;;
+    init|"")
+      aictx_spec_init
+      ;;
+    *)
+      ai_die "unknown arg for constitution: $cmd (use: aictx constitution [init])"
+      ;;
+  esac
+}
+
+aictx_specify(){
+  local slug="${1:-}"
+  [[ -n "$slug" ]] || { aictx_specify_usage; return 1; }
+  aictx_spec_create "$slug"
+}
+
+aictx_analyze(){
+  local slug="${1:-}"
+  [[ -n "$slug" ]] || { aictx_analyze_usage; return 1; }
+  aictx_spec_analyze "$slug"
+}
+
+# Legacy alias kept for compatibility with the earlier MVP.
+aictx_spec_usage(){
+  cat <<EOF
+Usage:
+  aictx constitution [init]
+  aictx specify <slug>
+  aictx analyze <slug>
+EOF
 }

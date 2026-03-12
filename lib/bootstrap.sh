@@ -106,7 +106,10 @@ aictx_init_templates(){
   aictx_copy_if_missing "$(aictx_template_path "context" "CONTEXT.md")" "$AICTX_DIR/CONTEXT.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "DECISIONS.md")" "$AICTX_DIR/DECISIONS.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "TODO.md")" "$AICTX_DIR/TODO.md"
-  aictx_copy_if_missing "$(aictx_template_path "context" "CHARTER.md")" "$AICTX_CHARTER_FILE"
+  if [[ -f "$AICTX_DIR/CHARTER.md" && ! -f "$AICTX_CONSTITUTION_FILE" ]]; then
+    cp "$AICTX_DIR/CHARTER.md" "$AICTX_CONSTITUTION_FILE"
+  fi
+  aictx_copy_if_missing "$(aictx_template_path "context" "constitution.md")" "$AICTX_CONSTITUTION_FILE"
   aictx_copy_if_missing "$(aictx_template_path "config" "config.json")" "$AICTX_CONFIG_FILE"
   aictx_copy_if_missing "$(aictx_template_path "context" "DIGEST.md")" "$AICTX_DIGEST_FILE"
 

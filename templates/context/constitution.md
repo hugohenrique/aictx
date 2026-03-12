@@ -1,4 +1,4 @@
-# Charter
+# Constitution
 
 ## Purpose
 - Capture stable engineering constraints for this repository.

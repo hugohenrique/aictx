@@ -68,7 +68,7 @@ aictx_validate(){
     failures=$((failures + 1))
   fi
 
-  local required_context=(PROMPT.md DIGEST.md CONTEXT.md DECISIONS.md TODO.md CHARTER.md)
+  local required_context=(PROMPT.md DIGEST.md CONTEXT.md DECISIONS.md TODO.md constitution.md)
   local file
   for file in "${required_context[@]}"; do
     if [[ -f "$AICTX_DIR/$file" ]]; then
