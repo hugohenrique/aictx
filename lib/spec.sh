@@ -6,6 +6,8 @@ source "${AICTX_HOME}/lib/core.sh"
 source "${AICTX_HOME}/lib/fs.sh"
 # shellcheck source=./bootstrap.sh
 source "${AICTX_HOME}/lib/bootstrap.sh"
+# shellcheck source=./spec_kit.sh
+source "${AICTX_HOME}/lib/spec_kit.sh"
 # shellcheck source=./template.sh
 source "${AICTX_HOME}/lib/template.sh"
 
@@ -13,7 +15,7 @@ aictx_constitution_usage(){
   cat <<EOF
 Usage: aictx constitution [init]
 
-Initialize or repair the local constitution file at .aictx/constitution.md.
+Initialize or repair the active constitution file for the current spec layout.
 EOF
 }
 
@@ -21,7 +23,7 @@ aictx_specify_usage(){
   cat <<EOF
 Usage: aictx specify <slug>
 
-Create a feature workspace under .aictx/specs/<slug>/ with spec/plan/tasks artifacts.
+Create a feature workspace under the active specs directory with spec/plan/tasks artifacts.
 EOF
 }
 
@@ -51,12 +53,12 @@ aictx_spec_title_from_slug(){
 aictx_spec_bootstrap(){
   aictx_paths_init
   aictx_bootstrap
-  mkdir -p "$AICTX_SPECS_DIR"
+  mkdir -p "$(aictx_spec_kit_specs_target)"
 }
 
 aictx_spec_dir(){
   local slug="$1"
-  echo "$AICTX_SPECS_DIR/$slug"
+  echo "$(aictx_spec_kit_specs_target)/$slug"
 }
 
 aictx_spec_file(){
@@ -80,7 +82,9 @@ aictx_spec_assert_exists(){
 aictx_spec_primary_files(){
   local slug="$1"
   local files=()
-  [[ -f "$AICTX_CONSTITUTION_FILE" ]] && files+=("$AICTX_CONSTITUTION_FILE")
+  local constitution_file
+  constitution_file="$(aictx_spec_kit_constitution_target)"
+  [[ -f "$constitution_file" ]] && files+=("$constitution_file")
   local name
   for name in spec.md plan.md tasks.md; do
     [[ -f "$(aictx_spec_file "$slug" "$name")" ]] && files+=("$(aictx_spec_file "$slug" "$name")")
@@ -141,7 +145,11 @@ aictx_spec_inline_block(){
 
 aictx_spec_init(){
   aictx_spec_bootstrap
-  ai_log "constitution/spec workspace ready: $AICTX_SPECS_DIR"
+  local constitution_file
+  constitution_file="$(aictx_spec_kit_constitution_target)"
+  mkdir -p "$(dirname "$constitution_file")"
+  [[ -f "$constitution_file" ]] || cp "$(aictx_spec_kit_template_path "constitution.md")" "$constitution_file"
+  ai_log "constitution/spec workspace ready: $(aictx_spec_kit_specs_target)"
 }
 
 aictx_spec_create(){
@@ -160,16 +168,16 @@ aictx_spec_create(){
 
   mkdir -p "$spec_dir/contracts" "$spec_dir/checklists"
 
-  aictx_template_fill "$(aictx_template_path "spec" "spec.md")" "$(aictx_spec_file "$slug" "spec.md")" \
+  aictx_template_fill "$(aictx_spec_kit_template_path "spec.md")" "$(aictx_spec_file "$slug" "spec.md")" \
     "SLUG=$slug" \
     "TITLE=$title"
-  aictx_template_fill "$(aictx_template_path "spec" "plan.md")" "$(aictx_spec_file "$slug" "plan.md")" \
+  aictx_template_fill "$(aictx_spec_kit_template_path "plan.md")" "$(aictx_spec_file "$slug" "plan.md")" \
     "SLUG=$slug" \
     "TITLE=$title"
-  aictx_template_fill "$(aictx_template_path "spec" "tasks.md")" "$(aictx_spec_file "$slug" "tasks.md")" \
+  aictx_template_fill "$(aictx_spec_kit_template_path "tasks.md")" "$(aictx_spec_file "$slug" "tasks.md")" \
     "SLUG=$slug" \
     "TITLE=$title"
-  aictx_template_fill "$(aictx_template_path "spec" "meta.json")" "$(aictx_spec_file "$slug" "meta.json")" \
+  aictx_template_fill "$(aictx_spec_kit_template_path "meta.json")" "$(aictx_spec_file "$slug" "meta.json")" \
     "SLUG=$slug" \
     "TITLE=$title"
 
@@ -185,7 +193,7 @@ aictx_spec_show(){
   spec_dir="$(aictx_spec_dir "$slug")"
   echo "slug: $slug"
   echo "dir: $spec_dir"
-  echo "constitution: $AICTX_CONSTITUTION_FILE"
+  echo "constitution: $(aictx_spec_kit_constitution_target)"
   echo "files:"
   local f
   while IFS= read -r f; do
@@ -200,7 +208,7 @@ aictx_spec_analyze(){
 
   local failures=0
   local required=(
-    "$AICTX_CONSTITUTION_FILE"
+    "$(aictx_spec_kit_constitution_target)"
     "$(aictx_spec_file "$slug" "spec.md")"
     "$(aictx_spec_file "$slug" "plan.md")"
     "$(aictx_spec_file "$slug" "tasks.md")"

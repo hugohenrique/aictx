@@ -7,6 +7,7 @@
 Per-project persistent AI context runner that supports **Codex CLI**, **Claude Code CLI**, and **Gemini CLI**.
 
 Prefer a practical day-to-day flow first? See [UX.md](UX.md).
+If you want the hybrid Spec Kit integration model, see [SPEC_KIT.md](SPEC_KIT.md).
 
 ## One-minute start
 
@@ -65,6 +66,7 @@ aictx run --intent review      # intent-based skill selection
 aictx run --skills impl,tests  # explicit skills
 aictx run --no-skill           # disable overlays for one run
 aictx constitution             # ensure constitution.md exists
+aictx spec-kit install         # install Spec Kit-compatible layout/templates
 aictx specify 001-feature      # create a spec workspace
 aictx run --spec 001-feature   # attach a spec workspace to the run
 aictx stats                    # inspect prompt/token metrics
@@ -103,7 +105,8 @@ See [OPTIMIZATION.md](OPTIMIZATION.md) for deeper internals and tuning.
 
 `aictx review --engine claude --since main --paths src/` generates a read-only architecture/code-quality report saved under `.aictx/reviews/`.
 `aictx swarm --impl codex --review claude --fix` runs an agent swarm pipeline (implementation + review + optional fix) and emits a report under `.aictx/swarm/`.
-`aictx specify 001-example-feature` creates a spec-driven workspace under `.aictx/specs/001-example-feature/` with `spec.md`, `plan.md`, `tasks.md`, and `meta.json`.
+`aictx specify 001-example-feature` creates a spec-driven workspace under the active specs directory with `spec.md`, `plan.md`, `tasks.md`, and `meta.json`.
+`aictx spec-kit install` installs a Spec Kit-compatible layout rooted at `.specify/` and `specs/`, while keeping `aictx` as the runtime layer.
 
 Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate sessions/transcripts/pending under `.aictx/namespaces/<name>/`.
 
@@ -113,6 +116,7 @@ Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate se
 - **Fallback engines**: configure `fallback_engine`, `fallback_model`, and `fallback_on_quota` in `.aictx/config.json`. When a transcript contains 429/quota/rate-limit markers, `aictx run` reruns the request with the fallback engine/model and updates the pending metadata to keep finalize/watch in sync.
 - **Review mode**: `aictx review` (read-only) asks the configured engine to evaluate architecture, code quality, tests, and risks, storing structured reports under `.aictx/reviews/` without touching repository files.
 - **Spec mode**: `aictx constitution`, `aictx specify`, and `aictx analyze` expose the official Spec Kit vocabulary while `run`, `review`, `swarm`, `stats`, and `prompt-plan` accept `--spec <slug>` to attach those artifacts.
+- **Spec Kit management**: `aictx spec-kit install|sync|status|uninstall` manages a hybrid Spec Kit-compatible layout and template source. See [SPEC_KIT.md](SPEC_KIT.md).
 - **Swarm mode**: `aictx swarm` chains implementation + review passes (plus an optional fix pass) using the review prompts and saves the narrative report under `.aictx/swarm/`. Use `--fix` to generate remediation guidance based on the implementation and review outputs.
 
 ## Spec-driven flow
@@ -121,13 +125,14 @@ Use spec mode when a feature benefits from explicit artifacts instead of only se
 
 ```bash
 aictx constitution
+aictx spec-kit install
 aictx specify 001-login-rate-limit
 aictx analyze 001-login-rate-limit
 aictx prompt-plan --spec 001-login-rate-limit
 aictx run --spec 001-login-rate-limit --dry-run
 ```
 
-`aictx init` now creates `.aictx/constitution.md` as a durable governance file. Keep feature-level execution in `.aictx/specs/<slug>/tasks.md`; keep global operational backlog in `.aictx/TODO.md`.
+`aictx init` creates `.aictx/constitution.md` for the local-only flow. If you install Spec Kit compatibility, the active constitution moves to `.specify/memory/constitution.md` and feature artifacts move to `specs/<slug>/`. Keep global operational backlog in `.aictx/TODO.md`.
 
 ### Gemini CLI notes
 - `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.

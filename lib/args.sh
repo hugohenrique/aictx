@@ -21,6 +21,8 @@ source "${AICTX_HOME}/lib/launchd.sh"
 source "${AICTX_HOME}/lib/cleanup.sh"
 # shellcheck source=./review.sh
 source "${AICTX_HOME}/lib/review.sh"
+# shellcheck source=./spec_kit.sh
+source "${AICTX_HOME}/lib/spec_kit.sh"
 # shellcheck source=./spec.sh
 source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./swarm.sh
@@ -41,6 +43,7 @@ aictx_help_command(){
     constitution) aictx_constitution_usage ;;
     specify) aictx_specify_usage ;;
     analyze) aictx_analyze_usage ;;
+    spec-kit) aictx_spec_kit_usage ;;
     run) aictx_run_usage ;;
     review) aictx_review_usage ;;
     swarm) aictx_swarm_usage ;;
@@ -62,6 +65,7 @@ Commands:
   constitution         initialize/repair the local constitution file
   specify              create a spec workspace for a feature
   analyze              validate spec/plan/tasks consistency
+  spec-kit             install or manage Spec Kit-compatible layout/templates
   run                  run interactive session (codex/claude/gemini)
   finalize             finalize latest (or specified) transcript/session
   watch                background worker to finalize pending items
@@ -122,6 +126,7 @@ Examples:
   aictx run --no-skill
   aictx run --engine claude --model opus
   aictx constitution
+  aictx spec-kit install
   aictx specify 001-example-feature
   aictx analyze 001-example-feature
   aictx run --spec 001-example-feature --dry-run
@@ -194,6 +199,7 @@ aictx_main(){
     constitution) aictx_constitution ${cmd_args[@]+"${cmd_args[@]}"} ;;
     specify) aictx_specify ${cmd_args[@]+"${cmd_args[@]}"} ;;
     analyze) aictx_analyze ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    spec-kit) aictx_spec_kit ${cmd_args[@]+"${cmd_args[@]}"} ;;
     review) aictx_review ${cmd_args[@]+"${cmd_args[@]}"} ;;
     spec) aictx_spec ${cmd_args[@]+"${cmd_args[@]}"} ;;
     swarm) aictx_swarm ${cmd_args[@]+"${cmd_args[@]}"} ;;
