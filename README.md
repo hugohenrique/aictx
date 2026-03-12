@@ -2,13 +2,51 @@
   <img src="assets/aictx-logo.png" alt="aictx logo" width="220" />
 </p>
 
-# aictx (token-optimized)
+# aictx
 
-Per-project persistent AI context runner that supports **Codex CLI**, **Claude Code CLI**, and **Gemini CLI**.
+`aictx` is a per-project AI context runner for **Codex CLI**, **Claude Code CLI**, and **Gemini CLI**.
+It keeps project memory on disk, reuses it across sessions, and tries to keep prompts small enough to stay practical in day-to-day development.
+
+The core idea is simple:
+- keep durable project context in `.aictx/`
+- make `aictx run` the default entry point
+- reduce prompt bloat with paths-based context and deterministic cleanup
+- keep the workflow readable instead of hiding state inside a single chat session
 
 Prefer a practical day-to-day flow first? See [UX.md](UX.md).
 
-## One-minute start
+## What problem it solves
+
+When working with CLI coding agents, context usually degrades in one of two ways:
+- important project knowledge gets lost between sessions
+- prompts grow until they become noisy, expensive, or inconsistent
+
+`aictx` addresses that by storing a small, explicit project memory on disk:
+- `DIGEST.md` for compact operational memory
+- `CONTEXT.md` for stable facts
+- `DECISIONS.md` for append-only decisions
+- `TODO.md` for actionable follow-up
+- `sessions/` and transcripts for run history and finalize flow
+
+The result is a workflow that stays local-first, inspectable, and cheap enough to use often.
+
+## How it works
+
+In normal use, you initialize once and keep coming back to `aictx run`.
+
+```bash
+aictx init
+aictx run
+```
+
+From there, `aictx`:
+- builds a minimal prompt from `.aictx/`
+- prefers paths-based context by default
+- auto-compacts context before runs
+- captures transcripts and can finalize memory updates after the session
+- lets you route to Codex, Claude, or Gemini without changing the project memory model
+
+## Quick start
 
 Install (script):
 
@@ -41,7 +79,7 @@ aictx run
 
 Daily flow: keep using `aictx run` and let auto-compaction maintain context size.
 
-## Why this feels natural
+## Why the workflow stays lightweight
 - `aictx run` is the default flow.
 - Context stays small automatically (deterministic compaction, no AI by default).
 - Project memory stays on disk and readable (`.aictx/*`), instead of hidden state.
