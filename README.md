@@ -64,6 +64,8 @@ aictx run --engine gemini      # force Gemini
 aictx run --intent review      # intent-based skill selection
 aictx run --skills impl,tests  # explicit skills
 aictx run --no-skill           # disable overlays for one run
+aictx spec create 001-feature  # create a spec workspace
+aictx run --spec 001-feature   # attach a spec workspace to the run
 aictx stats                    # inspect prompt/token metrics
 aictx cleanup                  # manual maintenance (usually unnecessary)
 ```
@@ -100,6 +102,7 @@ See [OPTIMIZATION.md](OPTIMIZATION.md) for deeper internals and tuning.
 
 `aictx review --engine claude --since main --paths src/` generates a read-only architecture/code-quality report saved under `.aictx/reviews/`.
 `aictx swarm --impl codex --review claude --fix` runs an agent swarm pipeline (implementation + review + optional fix) and emits a report under `.aictx/swarm/`.
+`aictx spec create 001-example-feature` creates a spec-driven workspace under `.aictx/specs/001-example-feature/` with `spec.md`, `plan.md`, `tasks.md`, and `meta.json`.
 
 Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate sessions/transcripts/pending under `.aictx/namespaces/<name>/`.
 
@@ -108,7 +111,21 @@ Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate se
 - **Namespaces**: pass `--ns <name>` before the command to keep sessions, transcripts, and pending jobs scoped to `.aictx/namespaces/<name>/`, while shared memory files (`DIGEST.md`, `CONTEXT.md`, etc.) remain global.
 - **Fallback engines**: configure `fallback_engine`, `fallback_model`, and `fallback_on_quota` in `.aictx/config.json`. When a transcript contains 429/quota/rate-limit markers, `aictx run` reruns the request with the fallback engine/model and updates the pending metadata to keep finalize/watch in sync.
 - **Review mode**: `aictx review` (read-only) asks the configured engine to evaluate architecture, code quality, tests, and risks, storing structured reports under `.aictx/reviews/` without touching repository files.
+- **Spec mode**: `aictx spec` manages optional spec-driven workspaces under `.aictx/specs/`; `run`, `review`, `swarm`, `stats`, and `prompt-plan` accept `--spec <slug>` to attach those artifacts.
 - **Swarm mode**: `aictx swarm` chains implementation + review passes (plus an optional fix pass) using the review prompts and saves the narrative report under `.aictx/swarm/`. Use `--fix` to generate remediation guidance based on the implementation and review outputs.
+
+## Spec-driven flow
+
+Use spec mode when a feature benefits from explicit artifacts instead of only session memory:
+
+```bash
+aictx spec create 001-login-rate-limit
+aictx spec analyze 001-login-rate-limit
+aictx prompt-plan --spec 001-login-rate-limit
+aictx run --spec 001-login-rate-limit --dry-run
+```
+
+`aictx init` now creates `.aictx/CHARTER.md` as a durable governance file. Keep feature-level execution in `.aictx/specs/<slug>/tasks.md`; keep global operational backlog in `.aictx/TODO.md`.
 
 ### Gemini CLI notes
 - `aictx init` creates a repo-root `GEMINI.md` if missing. Gemini CLI loads it automatically for persistent project instructions.

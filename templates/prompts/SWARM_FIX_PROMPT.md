@@ -9,6 +9,8 @@ COGNITIVE HIERARCHY (STRICT)
 5. History (only explicit)
 
 Intent: {{INTENT}}
+Spec: {{SPEC_SLUG}}
+Spec files: {{SPEC_PATHS}}
 Active skills: {{ACTIVE_SKILLS}}
 
 Skill policy:
@@ -31,6 +33,9 @@ Diff stats:
 
 Context:
 {{CONTEXT}}
+
+Spec context:
+{{SPEC_CONTEXT}}
 
 Produce actionable fix steps that include:
 - What to change to resolve review risks

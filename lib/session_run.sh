@@ -12,6 +12,8 @@ source "${AICTX_HOME}/lib/session.sh"
 source "${AICTX_HOME}/lib/metrics.sh"
 # shellcheck source=./skill_runtime.sh
 source "${AICTX_HOME}/lib/skill_runtime.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./runtime.sh
 source "${AICTX_HOME}/lib/runtime.sh"
 
@@ -28,6 +30,7 @@ Options:
   --skill <id>
   --skills <id1,id2>
   --no-skill
+  --spec <slug>
   -h, --help
 EOF
 }
@@ -44,11 +47,13 @@ aictx_status(){
   echo "last session: $(ai_latest_file "$AICTX_SESS_DIR" "*.md" || echo "<none>")"
   echo "last log:     $(ai_latest_file "$AICTX_TRS_DIR" "*.log" || echo "<none>")"
   echo "pending:      $(ls "$AICTX_PENDING_DIR"/*.json 2>/dev/null | wc -l | tr -d ' ')"
+  echo "charter:      $( [[ -f "$AICTX_CHARTER_FILE" ]] && echo "$AICTX_CHARTER_FILE" || echo "<none>" )"
+  echo "specs:        $(find "$AICTX_SPECS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
 }
 
 aictx_run(){
   local engine="auto" model_override="" no_finalize="0" engine_explicit="0" dry_run="0"
-  local intent="" skill_single="" skills_multi="" no_skill="0"
+  local intent="" skill_single="" skills_multi="" no_skill="0" spec_slug=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -61,19 +66,22 @@ aictx_run(){
       --skill) skill_single="${2:-}"; shift 2 ;;
       --skills) skills_multi="${2:-}"; shift 2 ;;
       --no-skill) no_skill="1"; shift 1 ;;
+      --spec) spec_slug="$(aictx_spec_slug_normalize "${2:-}")"; shift 2 ;;
       *) ai_die "unknown arg for run: $1 (use: aictx run --help)" ;;
     esac
   done
 
   aictx_paths_init
+  [[ -z "$spec_slug" ]] || aictx_spec_assert_exists "$spec_slug"
   local active_skills
   active_skills="$(aictx_select_skills "$intent" "$skill_single" "$skills_multi" "$no_skill" "run")"
   export AICTX_ACTIVE_SKILLS="$active_skills"
   export AICTX_RUN_INTENT="$intent"
+  export AICTX_ACTIVE_SPEC="$spec_slug"
 
   if [[ "$dry_run" == "1" ]]; then
     local metadata
-    metadata="dry_run=1;engine_explicit=$engine_explicit;intent=$intent;active_skills=$active_skills"
+    metadata="dry_run=1;engine_explicit=$engine_explicit;intent=$intent;active_skills=$active_skills;spec_slug=$spec_slug"
     aictx_runtime_execute "run" "$engine" "$model_override" "" "$metadata"
 
     local predicted session_file prev_session
@@ -84,7 +92,7 @@ aictx_run(){
     [[ "$session_file" == "__NEW__" ]] && session_file=""
 
     local dry_rows dry_total_chars dry_tokens_est
-    dry_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session_file" "$prev_session")"
+    dry_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session_file" "$prev_session" "$spec_slug")"
     dry_total_chars="$(aictx_metrics_sum_chars "$dry_rows")"
     dry_tokens_est="$(aictx_metrics_tokens_est "$dry_total_chars")"
 
@@ -103,14 +111,14 @@ aictx_run(){
   prev="$(ai_latest_file "$AICTX_SESS_DIR" "*.md")"
 
   local run_rows run_total_chars run_tokens_est
-  run_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session" "$prev")"
+  run_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session" "$prev" "$spec_slug")"
   run_total_chars="$(aictx_metrics_sum_chars "$run_rows")"
   run_tokens_est="$(aictx_metrics_tokens_est "$run_total_chars")"
   aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$run_tokens_est"
   aictx_metrics_print_memory_hygiene
 
   local metadata
-  metadata="engine_explicit=$engine_explicit;no_finalize=$no_finalize;intent=$intent;active_skills=$active_skills"
+  metadata="engine_explicit=$engine_explicit;no_finalize=$no_finalize;intent=$intent;active_skills=$active_skills;spec_slug=$spec_slug"
   aictx_runtime_execute "run" "$engine" "$model_override" "$session" "$metadata"
 
   aictx_metrics_log_run "$AICTX_RUNTIME_FINAL_ENGINE" "$AICTX_RUNTIME_FINAL_MODEL" "$AICTX_PROMPT_MODE" "$run_total_chars" "$run_tokens_est"

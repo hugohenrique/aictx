@@ -119,6 +119,8 @@ aictx_runtime_execute(){
   no_finalize="$(_aictx_runtime_meta_get "$metadata" "no_finalize" "0")"
   intent="$(_aictx_runtime_meta_get "$metadata" "intent" "")"
   active_skills="$(_aictx_runtime_meta_get "$metadata" "active_skills" "")"
+  local spec_slug
+  spec_slug="$(_aictx_runtime_meta_get "$metadata" "spec_slug" "")"
 
   aictx_paths_init
   if [[ "$dry_run" == "1" ]]; then
@@ -171,7 +173,7 @@ aictx_runtime_execute(){
   aictx_context_plan "$session" "$prev" "$AICTX_PROMPT_MODE"
 
   local prompt_file
-  prompt_file="$(aictx_build_prompt "$session" "$prev" "$AICTX_PROMPT_MODE" "$active_skills" "$intent")"
+  prompt_file="$(aictx_build_prompt "$session" "$prev" "$AICTX_PROMPT_MODE" "$active_skills" "$intent" "$spec_slug")"
 
   local ts transcript
   ts="$(date +"%Y-%m-%d_%H-%M")"
@@ -188,6 +190,7 @@ aictx_runtime_execute(){
     ai_log "engine=$eng model=$model prompt_mode=$AICTX_PROMPT_MODE"
   fi
   [[ -n "$active_skills" ]] && ai_log "skills=$active_skills"
+  [[ -n "$spec_slug" ]] && ai_log "spec=$spec_slug"
 
   ai_log "session=$session"
   ai_log "transcript=$transcript"

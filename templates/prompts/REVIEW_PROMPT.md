@@ -11,6 +11,8 @@ COGNITIVE HIERARCHY (STRICT)
 Project root: {{ROOT}}
 Paths: {{PATHS}}
 Since: {{SINCE}}
+Spec: {{SPEC_SLUG}}
+Spec files: {{SPEC_PATHS}}
 Active skills: {{ACTIVE_SKILLS}}
 
 Skill policy:
@@ -24,6 +26,9 @@ Diff stats:
 
 Context:
 {{CONTEXT}}
+
+Spec context:
+{{SPEC_CONTEXT}}
 
 Produce a structured, read-only report that covers:
 1. Architecture concerns (scalability, boundaries, dependencies)

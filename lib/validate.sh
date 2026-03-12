@@ -68,7 +68,7 @@ aictx_validate(){
     failures=$((failures + 1))
   fi
 
-  local required_context=(PROMPT.md DIGEST.md CONTEXT.md DECISIONS.md TODO.md)
+  local required_context=(PROMPT.md DIGEST.md CONTEXT.md DECISIONS.md TODO.md CHARTER.md)
   local file
   for file in "${required_context[@]}"; do
     if [[ -f "$AICTX_DIR/$file" ]]; then
@@ -110,6 +110,13 @@ aictx_validate(){
     _aictx_validate_print ok "GEMINI.md present"
   else
     _aictx_validate_print fail "GEMINI.md missing"
+    failures=$((failures + 1))
+  fi
+
+  if [[ -d "$AICTX_SPECS_DIR" ]]; then
+    _aictx_validate_print ok "specs directory present"
+  else
+    _aictx_validate_print fail "specs directory missing"
     failures=$((failures + 1))
   fi
 

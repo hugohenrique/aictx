@@ -21,6 +21,8 @@ source "${AICTX_HOME}/lib/launchd.sh"
 source "${AICTX_HOME}/lib/cleanup.sh"
 # shellcheck source=./review.sh
 source "${AICTX_HOME}/lib/review.sh"
+# shellcheck source=./spec.sh
+source "${AICTX_HOME}/lib/spec.sh"
 # shellcheck source=./swarm.sh
 source "${AICTX_HOME}/lib/swarm.sh"
 # shellcheck source=./metrics.sh
@@ -38,6 +40,7 @@ aictx_help_command(){
     ""|all|global) aictx_usage ;;
     run) aictx_run_usage ;;
     review) aictx_review_usage ;;
+    spec) aictx_spec_usage ;;
     swarm) aictx_swarm_usage ;;
     finalize) aictx_finalize_usage ;;
     validate) echo "Usage: aictx validate [--strict]" ;;
@@ -62,6 +65,7 @@ Commands:
   doctor               check dependencies and setup
   install-launchd      install macOS LaunchAgent for background watch
   review               generate a read-only architecture/code quality report
+  spec                 manage spec-driven feature workspaces
   swarm                run swarm pipeline (implementation + review + optional fix)
   validate             validate .aictx structure and limits
   sync                 sync local-first adapters (AGENTS/GEMINI/skills)
@@ -82,11 +86,13 @@ Skills flags (run/review/swarm):
   --skill       activate one skill id
   --skills      activate comma-separated skill ids
   --no-skill    disable skill overlays for this run
+  --spec        attach a spec workspace from .aictx/specs/<slug>
 
 Review flags:
   --engine      choose engine for the review pass
   --since       compare from git ref
   --paths       restrict analysis paths (space-separated)
+  --spec        attach a spec workspace from .aictx/specs/<slug>
 
 Swarm flags:
   --impl        implementation pass engine (default: codex)
@@ -111,6 +117,8 @@ Examples:
   aictx run --skills impl,review
   aictx run --no-skill
   aictx run --engine claude --model opus
+  aictx spec create 001-example-feature
+  aictx run --spec 001-example-feature --dry-run
   aictx review --engine claude --since main --paths src/
   aictx swarm --impl codex --review claude --fix
   aictx validate --strict
@@ -178,6 +186,7 @@ aictx_main(){
     sync) aictx_sync ${cmd_args[@]+"${cmd_args[@]}"} ;;
     install-launchd) aictx_install_launchd ${cmd_args[@]+"${cmd_args[@]}"} ;;
     review) aictx_review ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    spec) aictx_spec ${cmd_args[@]+"${cmd_args[@]}"} ;;
     swarm) aictx_swarm ${cmd_args[@]+"${cmd_args[@]}"} ;;
     *) aictx_usage; ai_die "unknown command: $cmd" ;;
   esac
