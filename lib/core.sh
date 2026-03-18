@@ -251,12 +251,24 @@ aictx_finalize_base(){
   ai_cmd git || { ai_log "git not found; skipping $engine auto-apply"; return 0; }
   git -C "$AICTX_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 || { ai_log "not a git repo; skipping"; return 0; }
 
-  # Note: requires AICTX_DIR and aictx_build_finalize_prompt from caller context
   local patch finalize_prompt
   patch="$AICTX_DIR/finalizer_$(date +"%Y-%m-%d_%H-%M").diff"
   finalize_prompt="$(aictx_build_finalize_prompt "$session" "$transcript")"
 
-  # Execute engine-specific command
+  local fin_chars=0 fin_tokens=0
+  if [[ -f "$finalize_prompt" ]]; then
+    fin_chars="$(wc -c < "$finalize_prompt" 2>/dev/null | tr -d ' ' || echo 0)"
+    fin_tokens="$(((fin_chars + 150 + 3) / 4))"
+    if [[ -n "${AICTX_DIR:-}" ]]; then
+      local metrics_file="$AICTX_DIR/metrics.jsonl"
+      local ns="${AICTX_NAMESPACE:-default}"
+      local ts; ts="$(date -Iseconds 2>/dev/null || date)"
+      mkdir -p "$(dirname "$metrics_file")"
+      printf '{"timestamp":"%s","engine":"%s","model":"%s","prompt_mode":"finalize","phase":"finalize","chars_total":%s,"tokens_est":%s,"namespace":"%s"}\n' \
+        "$ts" "$engine" "$model" "$fin_chars" "$fin_tokens" "$ns" >> "$metrics_file" 2>/dev/null || true
+    fi
+  fi
+
   case "$engine" in
     claude)
       claude -p --model "$model" "$(cat "$finalize_prompt")" > "$patch"

@@ -34,7 +34,7 @@ dates = re.findall(r"^##\s+(\d{4}-\d{2}-\d{2})\s*$", text, flags=re.M)
 if not dates:
     sys.exit(2)
 
-cutoff = date.today() - timedelta(days=7)
+cutoff = date.today() - timedelta(days=30)
 for d in dates:
     try:
         dt = date.fromisoformat(d)
@@ -99,88 +99,99 @@ aictx_context_tokens_est(){
   echo $(((chars + 3) / 4))
 }
 
+_aictx_context_plan_compute(){
+  local session_file="$1"
+  local prev_session="$2"
+  local mode="${3:-${AICTX_PROMPT_MODE:-paths}}"
+
+  local _load_context=0 _load_decisions=0 _load_todo=0 _load_prev=0
+  local _reason_context="skipped" _reason_decisions="skipped" _reason_todo="skipped" _reason_prev="skipped"
+  local _context_note=""
+
+  if [[ "$mode" == "inline" ]]; then
+    _load_context=1; _load_decisions=1; _load_todo=1
+    _reason_context="inline mode includes L3"
+    _reason_decisions="inline mode includes L4"
+    _reason_todo="inline mode includes L5"
+
+    if [[ -n "$prev_session" && "$prev_session" != "$session_file" && -f "$prev_session" ]]; then
+      _load_prev=1; _reason_prev="inline mode includes L6"
+    fi
+  else
+    if aictx_should_load_context; then
+      _load_context=1; _reason_context="changed/stale cache for L3"
+      aictx_update_context_cache
+    else
+      _context_note=" (CONTEXT.md cached, read if needed)"
+      _reason_context="fresh context cache; L3 optional"
+    fi
+
+    if aictx_should_load_decisions; then
+      _load_decisions=1; _reason_decisions="recent/non-empty decisions for L4"
+    fi
+
+    if aictx_should_load_todo; then
+      _load_todo=1; _reason_todo="actionable TODO content for L5"
+    fi
+
+    if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]] && aictx_should_load_prev_session "$prev_session"; then
+      _load_prev=1; _reason_prev="recent previous session for L6"
+    fi
+  fi
+
+  local total_chars=0 file
+  for file in "$AICTX_DIR/PROMPT.md" "$AICTX_DIGEST_FILE"; do
+    [[ -f "$file" ]] && total_chars=$((total_chars + $(wc -c < "$file" | tr -d ' ')))
+  done
+  if [[ "$_load_context" == "1" && -f "$AICTX_DIR/CONTEXT.md" ]]; then
+    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/CONTEXT.md" | tr -d ' ')))
+  fi
+  if [[ "$_load_decisions" == "1" && -f "$AICTX_DIR/DECISIONS.md" ]]; then
+    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/DECISIONS.md" | tr -d ' ')))
+  fi
+  if [[ "$_load_todo" == "1" && -f "$AICTX_DIR/TODO.md" ]]; then
+    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/TODO.md" | tr -d ' ')))
+  fi
+  if [[ "$_load_prev" == "1" && -f "$prev_session" ]]; then
+    total_chars=$((total_chars + $(wc -c < "$prev_session" | tr -d ' ')))
+  fi
+
+  export AICTX_PLAN_LOAD_PROMPT=1
+  export AICTX_PLAN_LOAD_DIGEST=1
+  export AICTX_PLAN_LOAD_CONTEXT="$_load_context"
+  export AICTX_PLAN_LOAD_DECISIONS="$_load_decisions"
+  export AICTX_PLAN_LOAD_TODO="$_load_todo"
+  export AICTX_PLAN_LOAD_PREV_SESSION="$_load_prev"
+  export AICTX_PLAN_LOAD_CURRENT_SESSION=1
+  export AICTX_PLAN_CONTEXT_NOTE="$_context_note"
+  export AICTX_PLAN_REASON_PROMPT="mandatory L1"
+  export AICTX_PLAN_REASON_DIGEST="mandatory L2"
+  export AICTX_PLAN_REASON_CONTEXT="$_reason_context"
+  export AICTX_PLAN_REASON_DECISIONS="$_reason_decisions"
+  export AICTX_PLAN_REASON_TODO="$_reason_todo"
+  export AICTX_PLAN_REASON_PREV_SESSION="$_reason_prev"
+  export AICTX_PLAN_REASON_CURRENT_SESSION="mandatory L7"
+  export AICTX_PLAN_SESSION_FILE="$session_file"
+  export AICTX_PLAN_PREV_SESSION="$prev_session"
+  export AICTX_PLAN_MODE="$mode"
+  export AICTX_PLAN_ESTIMATED_CHARS="$total_chars"
+  export AICTX_PLAN_ESTIMATED_TOKENS="$(aictx_context_tokens_est "$total_chars")"
+  export AICTX_PLAN_ESTIMATED_BUDGET_HINT="~${AICTX_PLAN_ESTIMATED_TOKENS} tokens (${total_chars} chars)"
+  export AICTX_PLAN_COMPUTED=1
+}
+
 aictx_context_plan(){
   local session_file="$1"
   local prev_session="$2"
   local mode="${3:-${AICTX_PROMPT_MODE:-paths}}"
 
-  export AICTX_PLAN_LOAD_PROMPT=1
-  export AICTX_PLAN_LOAD_DIGEST=1
-  export AICTX_PLAN_LOAD_CONTEXT=0
-  export AICTX_PLAN_LOAD_DECISIONS=0
-  export AICTX_PLAN_LOAD_TODO=0
-  export AICTX_PLAN_LOAD_PREV_SESSION=0
-  export AICTX_PLAN_LOAD_CURRENT_SESSION=1
-  export AICTX_PLAN_CONTEXT_NOTE=""
-
-  export AICTX_PLAN_REASON_PROMPT="mandatory L1"
-  export AICTX_PLAN_REASON_DIGEST="mandatory L2"
-  export AICTX_PLAN_REASON_CONTEXT="skipped"
-  export AICTX_PLAN_REASON_DECISIONS="skipped"
-  export AICTX_PLAN_REASON_TODO="skipped"
-  export AICTX_PLAN_REASON_PREV_SESSION="skipped"
-  export AICTX_PLAN_REASON_CURRENT_SESSION="mandatory L7"
-
-  if [[ "$mode" == "inline" ]]; then
-    export AICTX_PLAN_LOAD_CONTEXT=1
-    export AICTX_PLAN_LOAD_DECISIONS=1
-    export AICTX_PLAN_LOAD_TODO=1
-    export AICTX_PLAN_REASON_CONTEXT="inline mode includes L3"
-    export AICTX_PLAN_REASON_DECISIONS="inline mode includes L4"
-    export AICTX_PLAN_REASON_TODO="inline mode includes L5"
-
-    if [[ -n "$prev_session" && "$prev_session" != "$session_file" && -f "$prev_session" ]]; then
-      export AICTX_PLAN_LOAD_PREV_SESSION=1
-      export AICTX_PLAN_REASON_PREV_SESSION="inline mode includes L6"
-    fi
+  local cache_key="${session_file:-}_${prev_session:-}_${mode:-paths}"
+  if [[ "${AICTX_PLAN_COMPUTED:-0}" == "1" && \
+        "$cache_key" == "${AICTX_PLAN_SESSION_FILE:-}_${AICTX_PLAN_PREV_SESSION:-}_${AICTX_PLAN_MODE:-paths}" ]]; then
+    :
   else
-    if aictx_should_load_context; then
-      export AICTX_PLAN_LOAD_CONTEXT=1
-      export AICTX_PLAN_REASON_CONTEXT="changed/stale cache for L3"
-      aictx_update_context_cache
-    else
-      export AICTX_PLAN_CONTEXT_NOTE=" (CONTEXT.md cached, read if needed)"
-      export AICTX_PLAN_REASON_CONTEXT="fresh context cache; L3 optional"
-    fi
-
-    if aictx_should_load_decisions; then
-      export AICTX_PLAN_LOAD_DECISIONS=1
-      export AICTX_PLAN_REASON_DECISIONS="recent/non-empty decisions for L4"
-    fi
-
-    if aictx_should_load_todo; then
-      export AICTX_PLAN_LOAD_TODO=1
-      export AICTX_PLAN_REASON_TODO="actionable TODO content for L5"
-    fi
-
-    if [[ -n "$prev_session" && "$prev_session" != "$session_file" ]] && aictx_should_load_prev_session "$prev_session"; then
-      export AICTX_PLAN_LOAD_PREV_SESSION=1
-      export AICTX_PLAN_REASON_PREV_SESSION="recent previous session for L6"
-    fi
+    _aictx_context_plan_compute "$session_file" "$prev_session" "$mode"
   fi
-
-  local total_chars=0
-  local file
-  for file in "$AICTX_DIR/PROMPT.md" "$AICTX_DIGEST_FILE"; do
-    [[ -f "$file" ]] && total_chars=$((total_chars + $(wc -c < "$file" | tr -d ' ')))
-  done
-
-  if [[ "$AICTX_PLAN_LOAD_CONTEXT" == "1" && -f "$AICTX_DIR/CONTEXT.md" ]]; then
-    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/CONTEXT.md" | tr -d ' ')))
-  fi
-  if [[ "$AICTX_PLAN_LOAD_DECISIONS" == "1" && -f "$AICTX_DIR/DECISIONS.md" ]]; then
-    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/DECISIONS.md" | tr -d ' ')))
-  fi
-  if [[ "$AICTX_PLAN_LOAD_TODO" == "1" && -f "$AICTX_DIR/TODO.md" ]]; then
-    total_chars=$((total_chars + $(wc -c < "$AICTX_DIR/TODO.md" | tr -d ' ')))
-  fi
-  if [[ "$AICTX_PLAN_LOAD_PREV_SESSION" == "1" && -f "$prev_session" ]]; then
-    total_chars=$((total_chars + $(wc -c < "$prev_session" | tr -d ' ')))
-  fi
-
-  export AICTX_PLAN_ESTIMATED_CHARS="$total_chars"
-  export AICTX_PLAN_ESTIMATED_TOKENS="$(aictx_context_tokens_est "$total_chars")"
-  export AICTX_PLAN_ESTIMATED_BUDGET_HINT="~${AICTX_PLAN_ESTIMATED_TOKENS} tokens (${AICTX_PLAN_ESTIMATED_CHARS} chars)"
 
   if [[ "${4:-}" == "print" ]]; then
     cat <<PLAN

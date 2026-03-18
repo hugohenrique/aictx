@@ -3,7 +3,7 @@
   "codex_model": "gpt-5.1-codex-max",
   "claude_model": "sonnet",
   "gemini_model": "auto",
-  "session_reuse_seconds": 7200,
+  "session_reuse_seconds": 3600,
   "finalize": true,
   "prompt_mode": "paths",
   "auto_compact": true,

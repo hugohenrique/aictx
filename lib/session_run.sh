@@ -105,9 +105,16 @@ aictx_run(){
   local run_rows run_total_chars run_tokens_est
   run_rows="$(aictx_metrics_collect_rows "$AICTX_PROMPT_MODE" "$session" "$prev")"
   run_total_chars="$(aictx_metrics_sum_chars "$run_rows")"
-  run_tokens_est="$(aictx_metrics_tokens_est "$run_total_chars")"
+  run_tokens_est="$(aictx_metrics_tokens_est "$run_total_chars" 500)"
   aictx_metrics_print_warnings "$AICTX_PROMPT_MODE" "$run_tokens_est"
   aictx_metrics_print_memory_hygiene
+
+  if [[ "$AICTX_PROMPT_MODE" == "inline" ]]; then
+    local budget="${AICTX_TOKEN_BUDGET_EST:-2500}"
+    if [[ "$run_tokens_est" -ge "$budget" ]]; then
+      ai_log "inline budget warning: ~$run_tokens_est tokens est (budget $budget). Consider --intent or skills to reduce scope."
+    fi
+  fi
 
   local metadata
   metadata="engine_explicit=$engine_explicit;no_finalize=$no_finalize;intent=$intent;active_skills=$active_skills"

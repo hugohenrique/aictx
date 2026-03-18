@@ -8,6 +8,8 @@ source "${AICTX_HOME}/lib/bootstrap.sh"
 source "${AICTX_HOME}/lib/config.sh"
 # shellcheck source=./fs.sh
 source "${AICTX_HOME}/lib/fs.sh"
+# shellcheck source=./metrics.sh
+source "${AICTX_HOME}/lib/metrics.sh"
 # shellcheck source=./engines/codex.sh
 source "${AICTX_HOME}/lib/engines/codex.sh"
 # shellcheck source=./engines/claude.sh

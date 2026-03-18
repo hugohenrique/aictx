@@ -90,13 +90,17 @@ aictx_build_prompt(){
   local mode="${3:-paths}"
   local active_skills="${4:-}"
   local intent="${5:-}"
-  local out
-  out="$(ai_mktemp)"
+  local out; out="$(ai_mktemp)"
   local skills_label="none"
   [[ -n "$active_skills" ]] && skills_label="$active_skills"
   [[ -z "$intent" ]] && intent="not specified"
 
-  aictx_context_plan "$session_file" "$prev_session" "$mode"
+  if [[ "${AICTX_PLAN_COMPUTED:-0}" != "1" ]] || \
+     [[ "$session_file" != "${AICTX_PLAN_SESSION_FILE:-}" ]] || \
+     [[ "$prev_session" != "${AICTX_PLAN_PREV_SESSION:-}" ]] || \
+     [[ "$mode" != "${AICTX_PLAN_MODE:-}" ]]; then
+    aictx_context_plan "$session_file" "$prev_session" "$mode"
+  fi
 
   if [[ "$mode" == "inline" ]]; then
     {

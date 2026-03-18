@@ -13,10 +13,34 @@ aictx_metrics_file(){
   echo "$AICTX_DIR/metrics.jsonl"
 }
 
+AICTX_OVERHEAD_CHARS_DEFAULT="350"
+
 aictx_metrics_chars(){
   local file="$1"
   [[ -f "$file" ]] || { echo 0; return; }
   wc -c < "$file" 2>/dev/null | tr -d ' ' || echo 0
+}
+
+aictx_metrics_overhead_chars(){
+  local overhead="${AICTX_OVERHEAD_CHARS:-$AICTX_OVERHEAD_CHARS_DEFAULT}"
+  echo "$overhead"
+}
+
+aictx_metrics_log_finalize(){
+  local engine="$1" model="$2" prompt_chars="$3" tokens_est="$4"
+  local metrics_file ns ts
+  metrics_file="$(aictx_metrics_file)"
+  ns="${AICTX_NAMESPACE:-default}"
+  ts="$(date -Iseconds 2>/dev/null || date)"
+  mkdir -p "$(dirname "$metrics_file")"
+
+  local esc_engine esc_model esc_ns
+  esc_engine="$(echo "$engine" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  esc_model="$(echo "$model" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+  esc_ns="$(echo "$ns" | tr '\n' ' ' | sed 's/\\/\\\\/g; s/"/\\"/g')"
+
+  printf '{"timestamp":"%s","engine":"%s","model":"%s","prompt_mode":"finalize","phase":"finalize","chars_total":%s,"tokens_est":%s,"namespace":"%s"}\n' \
+    "$ts" "$esc_engine" "$esc_model" "$prompt_chars" "$tokens_est" "$esc_ns" >> "$metrics_file"
 }
 
 aictx_metrics_nonempty_lines(){
@@ -26,6 +50,12 @@ aictx_metrics_nonempty_lines(){
 }
 
 aictx_metrics_tokens_est(){
+  local chars="${1:-0}"
+  local overhead="${2:-$(aictx_metrics_overhead_chars)}"
+  echo $((((chars + overhead) + 3) / 4))
+}
+
+aictx_metrics_tokens_est_raw(){
   local chars="${1:-0}"
   echo $(((chars + 3) / 4))
 }
