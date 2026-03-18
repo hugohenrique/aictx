@@ -1,0 +1,12 @@
+{
+  "task_id": "task3",
+  "type": "claude-direct-inline",
+  "inline_tokens_est": 1127,
+  "context_chars": 4506,
+  "prompt_chars": 2764,
+  "digest_chars": 772,
+  "context_file_chars": 404,
+  "decisions_chars": 301,
+  "todo_chars": 265,
+  "note": "Token est = chars/4 (inline text). Run BENCHMARK.md protocol for real CLI token counts."
+}

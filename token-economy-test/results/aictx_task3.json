@@ -1,0 +1,15 @@
+{
+  "task_id": "task3",
+  "type": "aictx-paths",
+  "tokens_est": 951,
+  "context_chars": 1742,
+  "context_tokens": 436,
+  "with_overhead_chars": 2242,
+  "with_overhead_tokens": 561,
+  "digest_chars": 772,
+  "context_chars": 404,
+  "decisions_chars": 301,
+  "todo_chars": 265,
+  "session_chars": 0,
+  "timestamp": "2026-03-18T14:29:40-03:00"
+}

@@ -1,0 +1,13 @@
+DRY RUN: engine execution skipped.
+engine: codex
+model: gpt-5.1-codex-max
+prompt_mode: paths
+files:
+  - referenced: PROMPT.md (2764 chars) -> /Users/hugohenrique/workspace/token-economy-test/.aictx/PROMPT.md
+  - referenced: DIGEST.md (772 chars) -> /Users/hugohenrique/workspace/token-economy-test/.aictx/DIGEST.md
+  - referenced: TODO.md (265 chars) -> /Users/hugohenrique/workspace/token-economy-test/.aictx/TODO.md
+total_chars: 3801
+tokens_est: 951
+previous_run: 2026-03-18T14:29:38-03:00
+delta_chars: 0
+delta_tokens_est: 0

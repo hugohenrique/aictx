@@ -1,0 +1,4 @@
+task_id,aictx_tokens_est,inline_tokens_est,engine,mode,tradeoff
+task1,951,1127,claude,comparison,"- 176 tokens (inline is larger, all context sent)"
+task2,951,1127,claude,comparison,"- 176 tokens (inline is larger, all context sent)"
+task3,951,1127,claude,comparison,"- 176 tokens (inline is larger, all context sent)"
