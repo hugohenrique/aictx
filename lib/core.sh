@@ -235,6 +235,8 @@ aictx_infer_engine_from_model(){
 
   # Codex models usually contain "codex"
   if [[ "$m" == *"codex"* ]]; then echo "codex"; return; fi
+  # Kimi (K2.x, K2.6+) models are typically consumed via Codex CLI providers.
+  if [[ "$m" == *"kimi"* || "$m" == *"k2.6"* ]]; then echo "codex"; return; fi
 
   # Claude models often are opus/sonnet/haiku or start with "claude"
   if [[ "$m" == "opus" || "$m" == "sonnet" || "$m" == "haiku" || "$m" == claude* ]]; then echo "claude"; return; fi

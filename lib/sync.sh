@@ -110,7 +110,6 @@ aictx_sync_agents_md(){
 aictx_sync(){
   aictx_paths_init
   aictx_init_templates
-  aictx_init_project_skill
   aictx_sync_agents_md
-  ai_log "sync complete (.aictx, AGENTS.md, project skill)"
+  ai_log "sync complete (.aictx, AGENTS.md)"
 }

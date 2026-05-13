@@ -104,6 +104,23 @@ aictx run --skills impl,tests  # explicit skills
 aictx run --no-skill           # disable overlays for one run
 aictx stats                    # inspect prompt/token metrics
 aictx cleanup                  # manual maintenance (usually unnecessary)
+aictx skill validate owner/repo
+aictx skill install owner/repo --dry-run
+aictx skill list
+```
+
+### Skill install from GitHub
+- Install from `owner/repo` or full GitHub URL.
+- Validation is executed before install (`SKILL.json` + `OVERLAY.md`, id/dir consistency, basic safety checks).
+- Use `--dry-run` to validate without writing files, and `--force` to replace an existing local skill.
+
+Examples:
+```bash
+aictx skill validate owner/repo
+aictx skill install owner/repo --dry-run
+aictx skill install owner/repo --ref v1.2.0
+aictx skill install https://github.com/owner/repo --force
+aictx skill remove my-skill-id
 ```
 
 ## Configuration highlights
@@ -133,7 +150,6 @@ in `.aictx/config.json`.
 
 See [OPTIMIZATION.md](OPTIMIZATION.md) for deeper internals and tuning.
 
-`aictx init` also creates a project skill at `.aictx/skills/<project>-aictx/SKILL.md` for repo-specific guidance.
 `aictx init` also appends an `aictx` section to `AGENTS.md` (or creates it) so Codex app follows the same context rules.
 
 `aictx review --engine claude --since main --paths src/` generates a read-only architecture/code-quality report saved under `.aictx/reviews/`.
@@ -155,12 +171,14 @@ Add `--ns <name>` to any command (e.g., `aictx --ns payments run`) to isolate se
 ### Model-based routing (level 1)
 If you pass `--model`, `aictx` will infer which CLI to use when you didn't explicitly set `--engine`:
 - Models containing `codex` -> Codex CLI
+- Models containing `kimi` or `k2.6` -> Codex CLI
 - `opus|sonnet|haiku` or `claude*` -> Claude CLI
 - `gemini*` -> Gemini CLI
 
 Examples:
 ```bash
 aictx run --model gpt-5.1-codex-max   # uses Codex
+aictx run --model kimi-k2.6+          # uses Codex
 aictx run --model sonnet              # uses Claude
 aictx run --model gemini-2.0-flash    # uses Gemini
 ```

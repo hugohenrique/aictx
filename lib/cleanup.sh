@@ -14,32 +14,35 @@ aictx_cleanup_old_sessions() {
   for sessions_dir in $(ns_aictx_dirs "sessions"); do
     [[ ! -d "$sessions_dir" ]] && continue
 
-    local base_dir archive_dir session_count
-    base_dir="$(dirname "$sessions_dir")"
-    archive_dir="$base_dir/archive"
-    mkdir -p "$archive_dir"
+    local session_count
+    local -a session_files=()
 
-    session_count="$(ls -1 "$sessions_dir"/*.md 2>/dev/null | wc -l | tr -d ' ')"
+    shopt -s nullglob
+    session_files=("$sessions_dir"/*.md)
+    shopt -u nullglob
+    session_count="${#session_files[@]}"
     ai_log "Cleanup: found $session_count sessions in $sessions_dir"
+
+    [[ "$session_count" -eq 0 ]] && continue
 
     find "$sessions_dir" -name "*.md" -type f -mtime +30 | while read -r session; do
       local basename
       basename="$(basename "$session")"
-      ai_log "Archiving old session: $basename"
-      mv "$session" "$archive_dir/" 2>/dev/null || true
+      ai_log "Removing old session: $basename"
+      rm -f "$session" 2>/dev/null || true
     done
 
     if [[ $session_count -gt $keep_recent ]]; then
-      ls -1t "$sessions_dir"/*.md 2>/dev/null | tail -n +$((keep_recent + 1)) | while read -r session; do
+      ls -1t "${session_files[@]}" 2>/dev/null | tail -n +$((keep_recent + 1)) | while read -r session; do
         local basename
         basename="$(basename "$session")"
-        ai_log "Archiving excess session: $basename"
-        mv "$session" "$archive_dir/" 2>/dev/null || true
+        ai_log "Removing excess session: $basename"
+        rm -f "$session" 2>/dev/null || true
       done
     fi
   done
 
-  ai_log "Cleanup: sessions consolidated (default + namespaces)"
+  ai_log "Cleanup: old/excess sessions removed (default + namespaces)"
 }
 
 aictx_cleanup_pending() {
@@ -59,18 +62,27 @@ aictx_cleanup_transcripts() {
 
   for transcripts_dir in $(ns_aictx_dirs "transcripts"); do
     [[ ! -d "$transcripts_dir" ]] && continue
-    local base_dir archive_dir
-    base_dir="$(dirname "$transcripts_dir")"
-    archive_dir="$base_dir/archive/transcripts"
-    mkdir -p "$archive_dir"
+    find "$transcripts_dir" -name "*.log" -type f -size 0 -delete 2>/dev/null || true
 
-    find "$transcripts_dir" -name "*.log" -type f -mtime +"$keep_days" | while read -r log; do
-      local basename
-      basename="$(basename "$log")"
-      ai_log "Archiving old transcript: $basename"
-      mv "$log" "$archive_dir/" 2>/dev/null || true
-    done
+    find "$transcripts_dir" -name "*.log" -type f -mtime +"$keep_days" -delete 2>/dev/null || true
   done
+}
+
+aictx_cleanup_generated_artifacts() {
+  local base_dir archive_dir patch_keep_days="30"
+
+  for base_dir in $(ns_aictx_dirs "" | sed '/^$/d'); do
+    [[ -d "$base_dir" ]] || continue
+
+    find "$base_dir" -maxdepth 1 -name "finalizer_*.diff" -type f -size 0 -delete 2>/dev/null || true
+    find "$base_dir" -maxdepth 1 -name "finalizer_*.diff" -type f -mtime +7 -delete 2>/dev/null || true
+
+    archive_dir="$base_dir/archive"
+    [[ -d "$archive_dir" ]] || continue
+    find "$archive_dir" -maxdepth 1 -name "*.patch" -type f -mtime +"$patch_keep_days" -delete 2>/dev/null || true
+  done
+
+  ai_log "Cleanup: generated diffs and stale patches removed"
 }
 
 aictx_cleanup_decisions() {
@@ -202,6 +214,7 @@ aictx_cleanup_all() {
   aictx_cleanup_old_sessions
   aictx_cleanup_pending
   aictx_cleanup_transcripts
+  aictx_cleanup_generated_artifacts
   aictx_cleanup_decisions
   ai_log "Cleanup complete"
 }

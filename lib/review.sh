@@ -10,6 +10,8 @@ source "${AICTX_HOME}/lib/skill_runtime.sh"
 source "${AICTX_HOME}/lib/template.sh"
 # shellcheck source=./runtime.sh
 source "${AICTX_HOME}/lib/runtime.sh"
+# shellcheck source=./engines/codex.sh
+source "${AICTX_HOME}/lib/engines/codex.sh"
 
 aictx_review_usage(){
   cat <<EOF
@@ -73,7 +75,11 @@ aictx_review_invoke_engine(){
   case "$engine" in
     codex)
       ai_cmd codex || ai_die "codex not in PATH"
-      codex --cd "$AICTX_ROOT" --model "$model" --full-auto "$(cat "$prompt")" > "$output"
+      if aictx_codex_supports_exec; then
+        codex exec --cd "$AICTX_ROOT" --model "$model" --full-auto "$(cat "$prompt")" > "$output"
+      else
+        codex --cd "$AICTX_ROOT" --model "$model" --full-auto "$(cat "$prompt")" > "$output"
+      fi
       ;;
     claude)
       ai_cmd claude || ai_die "claude not in PATH"

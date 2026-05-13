@@ -8,6 +8,8 @@
 - Append DECISIONS with date headers.
 - Keep TODO actionable only.
 <!-- AICTX END -->
+
+<!-- aictx -->
 ## aictx
 - Follow the aictx paths header: always read PROMPT.md and DIGEST.md first.
 - Read optional files only if they are listed in the header.

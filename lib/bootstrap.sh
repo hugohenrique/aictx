@@ -100,7 +100,7 @@ EOF
 }
 
 aictx_init_templates(){
-  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR" "$AICTX_DIR/reviews" "$AICTX_DIR/swarm"
+  mkdir -p "$AICTX_SESS_DIR" "$AICTX_TRS_DIR" "$AICTX_PENDING_DIR"
 
   aictx_copy_if_missing "$(aictx_template_path "context" "PROMPT.md")" "$AICTX_DIR/PROMPT.md"
   aictx_copy_if_missing "$(aictx_template_path "context" "CONTEXT.md")" "$AICTX_DIR/CONTEXT.md"
@@ -122,7 +122,6 @@ aictx_gitignore_setup(){
 aictx_bootstrap(){
   aictx_paths_init
   aictx_init_templates
-  aictx_init_project_skill
   aictx_init_agents_md
   aictx_gitignore_setup
   aictx_run_migrations "$AICTX_SCHEMA_CURRENT"

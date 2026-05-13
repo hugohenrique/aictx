@@ -29,6 +29,8 @@ source "${AICTX_HOME}/lib/metrics.sh"
 source "${AICTX_HOME}/lib/validate.sh"
 # shellcheck source=./sync.sh
 source "${AICTX_HOME}/lib/sync.sh"
+# shellcheck source=./skills_install.sh
+source "${AICTX_HOME}/lib/skills_install.sh"
 
 GLOBAL_NS_HINT="  --ns <name>     target namespace (sessions/transcripts/pending under .aictx/namespaces/<name>)"
 
@@ -58,6 +60,7 @@ Commands:
   finalize             finalize latest (or specified) transcript/session
   watch                background worker to finalize pending items
   cleanup              cleanup old sessions & pending artifacts (token optimization)
+  skill                manage local skills (install/validate/list/remove)
   status               show context status
   doctor               check dependencies and setup
   install-launchd      install macOS LaunchAgent for background watch
@@ -101,6 +104,7 @@ Token optimization:
 
 Model-based routing (when --engine not set):
   --model containing 'codex' -> codex
+  --model containing 'kimi' or 'k2.6' -> codex
   --model in {opus,sonnet,haiku} or starting with 'claude' -> claude
   --model starting with 'gemini' -> gemini
 
@@ -113,6 +117,8 @@ Examples:
   aictx run --engine claude --model opus
   aictx review --engine claude --since main --paths src/
   aictx swarm --impl codex --review claude --fix
+  aictx skill install owner/repo --dry-run
+  aictx skill list
   aictx validate --strict
   aictx sync
   aictx prompt-plan
@@ -170,6 +176,7 @@ aictx_main(){
     finalize) aictx_finalize_cmd ${cmd_args[@]+"${cmd_args[@]}"} ;;
     watch) aictx_watch ${cmd_args[@]+"${cmd_args[@]}"} ;;
     cleanup) aictx_cleanup_all ${cmd_args[@]+"${cmd_args[@]}"} ;;
+    skill) aictx_skill_cmd ${cmd_args[@]+"${cmd_args[@]}"} ;;
     status) aictx_status ${cmd_args[@]+"${cmd_args[@]}"} ;;
     doctor) aictx_doctor ${cmd_args[@]+"${cmd_args[@]}"} ;;
     stats) aictx_stats ${cmd_args[@]+"${cmd_args[@]}"} ;;
